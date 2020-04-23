@@ -385,6 +385,26 @@ class Cognito:
         self._add_secret_hash(params, "SecretHash")
         self.client.confirm_sign_up(**params)
 
+    def resend_confirmation_code(self, username=None):
+        """
+        Resend confirmation code again for the specified username. Conformation code is sent either via email or sms
+        message.
+        :param username: User's username
+        """
+        if not username:
+            username = self.username
+
+        params = {
+            "ClientId": self.client_id,
+            "Username": username,
+        }
+
+        self._add_secret_hash(params, "SecretHash")
+        response = self.client.resend_confirmation_code(**params)
+
+        response.pop("ResponseMetadata")
+        return response
+
     def admin_authenticate(self, password):
         """
         Authenticate the user using admin super privileges
