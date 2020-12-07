@@ -645,6 +645,11 @@ class Cognito:
         self.client.admin_delete_user(
             UserPoolId=self.user_pool_id, Username=self.username
         )
+ 
+     def admin_disable_user(self):
+        self.client.admin_disable_user(
+            UserPoolId=self.user_pool_id, Username=self.username
+        )
 
     def admin_reset_password(self, username, client_metadata=None):
         self.client.admin_reset_user_password(
