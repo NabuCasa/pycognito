@@ -1,5 +1,5 @@
 mock==4.0.3
-coverage==5.0.3
+coverage==5.3.1
 black==19.10b0
 flake8==3.7.9
 pylint==2.4.4
