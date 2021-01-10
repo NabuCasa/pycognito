@@ -7,11 +7,12 @@
   "runArgs": ["-e", "GIT_EDITOR=code --wait"],
   "extensions": [
     "ms-python.python",
+    "ms-python.vscode-pylance",
     "ms-azure-devops.azure-pipelines",
     "esbenp.prettier-vscode"
   ],
   "settings": {
-    "python.pythonPath": "/usr/local/bin/python",
+    "python.pythonPath": "/usr/local/bin/python3",
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
     "python.formatting.provider": "black",
