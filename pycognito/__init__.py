@@ -364,7 +364,8 @@ class Cognito:
         if not username:
             username = self.username
         self.client.admin_confirm_sign_up(
-            UserPoolId=self.user_pool_id, Username=username,
+            UserPoolId=self.user_pool_id,
+            Username=username,
         )
 
     def confirm_sign_up(self, confirmation_code, username=None):
