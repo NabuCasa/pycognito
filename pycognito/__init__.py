@@ -95,7 +95,7 @@ class UserObj:
         if name in list(self.__dict__.get("_data", {}).keys()):
             self._data[name] = value
         else:
-            super(UserObj, self).__setattr__(name, value)
+            super().__setattr__(name, value)
 
     def save(self, admin=False):
         if admin:
@@ -234,7 +234,9 @@ class Cognito:
                 issuer=unverified_claims.get("iss"),
             )
         except JWTError:
-            raise TokenVerificationException("Your {} token could not be verified.")
+            raise TokenVerificationException(
+                "Your {} token could not be verified."
+            ) from None
         setattr(self, id_name, token)
         return verified
 
