@@ -223,7 +223,9 @@ class Cognito:
         unverified_claims = jwt.get_unverified_claims(token)
         token_use_verified = unverified_claims.get("token_use") == token_use
         if not token_use_verified:
-            raise TokenVerificationException("Your {} token use could not be verified.")
+            raise TokenVerificationException(
+                f"Your {id_name!r} token use ({token_use!r}) could not be verified."
+            )
         hmac_key = self.get_key(kid)
         try:
             verified = jwt.decode(
@@ -235,7 +237,7 @@ class Cognito:
             )
         except JWTError:
             raise TokenVerificationException(
-                "Your {} token could not be verified."
+                f"Your {id_name!r} token could not be verified."
             ) from None
         setattr(self, id_name, token)
         return verified
