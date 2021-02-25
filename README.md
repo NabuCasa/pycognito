@@ -138,7 +138,7 @@ After any authentication or other explicit verification of tokens, the following
 
 Register a user to the user pool
 
-**Important:** The arguments for `set_base_attributes` and `add_custom_attributes` methods depend on your user pool's configuration, and make sure the client id (app id) used has write permissions for the attriubtes you are trying to create. Example, if you want to create a user with a given_name equal to Johnson make sure the client_id you're using has permissions to edit or create given_name for a user in the pool.
+**Important:** The arguments for `set_base_attributes` and `add_custom_attributes` methods depend on your user pool's configuration, and make sure the client id (app id) used has write permissions for the attributes you are trying to create. Example, if you want to create a user with a given_name equal to Johnson make sure the client_id you're using has permissions to edit or create given_name for a user in the pool.
 
 ```python
 from pycognito import Cognito
@@ -472,7 +472,7 @@ u.logout()
 
 ##### Arguments
 
-No arguments for check_token
+No arguments for logout
 
 ## Cognito SRP Utility
 
