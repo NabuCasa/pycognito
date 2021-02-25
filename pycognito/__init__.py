@@ -417,13 +417,7 @@ class Cognito:
             AuthFlow="ADMIN_NO_SRP_AUTH",
             AuthParameters=auth_params,
         )
-
-        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.verify_token(
-            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
-        )
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def authenticate(self, password):
         """
@@ -440,12 +434,7 @@ class Cognito:
             client_secret=self.client_secret,
         )
         tokens = aws.authenticate_user()
-        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.verify_token(
-            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
-        )
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def new_password_challenge(self, password, new_password):
         """
@@ -462,10 +451,7 @@ class Cognito:
             client_secret=self.client_secret,
         )
         tokens = aws.set_new_password_challenge(new_password)
-        self.id_token = tokens["AuthenticationResult"]["IdToken"]
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.access_token = tokens["AuthenticationResult"]["AccessToken"]
-        self.token_type = tokens["AuthenticationResult"]["TokenType"]
+        self._set_tokens(tokens)
 
     def logout(self):
         """
@@ -636,15 +622,7 @@ class Cognito:
             AuthFlow="REFRESH_TOKEN_AUTH",
             AuthParameters=auth_params,
         )
-
-        self._set_attributes(
-            refresh_response,
-            {
-                "access_token": refresh_response["AuthenticationResult"]["AccessToken"],
-                "id_token": refresh_response["AuthenticationResult"]["IdToken"],
-                "token_type": refresh_response["AuthenticationResult"]["TokenType"],
-            },
-        )
+        self._set_tokens(refresh_response)
 
     def initiate_forgot_password(self):
         """
@@ -710,6 +688,18 @@ class Cognito:
                 self.username, self.client_id, self.client_secret
             )
             parameters[key] = secret_hash
+
+    def _set_tokens(self, tokens):
+        """
+        Helper function to verify and set token attributes based on a Cognito
+        AuthenticationResult.
+        """
+        self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
+        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
+        self.verify_token(
+            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
+        )
+        self.token_type = tokens["AuthenticationResult"]["TokenType"]
 
     def _set_attributes(self, response, attribute_dict):
         """
