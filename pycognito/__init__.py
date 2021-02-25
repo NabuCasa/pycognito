@@ -178,6 +178,8 @@ class Cognito:
         self.refresh_token = refresh_token
         self.client_secret = client_secret
         self.token_type = None
+        self.id_claims = None
+        self.access_claims = None
         self.custom_attributes = None
         self.base_attributes = None
         self.pool_jwk = None
@@ -262,6 +264,7 @@ class Cognito:
             )
 
         setattr(self, id_name, token)
+        setattr(self, token_use + "_claims", verified)
         return verified
 
     def get_user_obj(

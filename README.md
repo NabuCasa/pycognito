@@ -125,6 +125,13 @@ u = Cognito('your-user-pool-id','your-client-id',
 u.verify_tokens() # See method doc below; may throw an exception
 ```
 
+## Cognito Attributes
+
+After any authentication or other explicit verification of tokens, the following additional attributes will be available:
+
+- `id_claims` — A dict of verified claims from the id token
+- `access_claims` — A dict of verified claims from the access token
+
 ## Cognito Methods
 
 #### Register
@@ -432,6 +439,7 @@ Verifies the current `id_token` and `access_token`.
 An exception will be thrown if they do not pass verification.
 It can be useful to call this method immediately after instantiation when you're providing externally-remembered tokens to the `Cognito()` constructor.
 Note that if you're calling `check_tokens()` after instantitation, you'll still want to call `verify_tokens()` afterwards it in case it did nothing.
+This method also ensures that the `id_claims` and `access_claims` attributes are set with the verified claims from each token.
 
 ```python
 u = Cognito('your-user-pool-id','your-client-id',
