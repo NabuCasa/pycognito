@@ -222,6 +222,16 @@ class Cognito:
         key = list(filter(lambda x: x.get("kid") == kid, keys))
         return key[0]
 
+    def verify_tokens(self):
+        """
+        Verify the current id_token and access_token.  An exception will be
+        thrown if they do not pass verification.  It can be useful to call this
+        method after creating a Cognito instance where you've provided
+        externally-remembered token values.
+        """
+        self.verify_token(self.id_token, "id_token", "id")
+        self.verify_token(self.access_token, "access_token", "access")
+
     def verify_token(self, token, id_name, token_use):
         # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
 

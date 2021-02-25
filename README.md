@@ -26,6 +26,7 @@ Makes working with AWS Cognito easier for Python developers.
     - [Get Group](#get-group)
     - [Get Groups](#get-groups)
     - [Check Token](#check-token)
+    - [Verify Tokens](#verify-tokens)
     - [Logout](#logout)
 - [Cognito SRP Utility](#cognito-srp-utility) `pycognito.aws_srp.AWSSRP`
   - [Using AWSSRP](#using-awssrp)
@@ -120,6 +121,8 @@ u = Cognito('your-user-pool-id','your-client-id',
     id_token='your-id-token',
     refresh_token='your-refresh-token',
     access_token='your-access-token')
+
+u.verify_tokens() # See method doc below; may throw an exception
 ```
 
 ## Cognito Methods
@@ -422,6 +425,26 @@ u.check_token()
 ##### Arguments
 
 No arguments for check_token
+
+#### Verify Tokens
+
+Verifies the current `id_token` and `access_token`.
+An exception will be thrown if they do not pass verification.
+It can be useful to call this method immediately after instantiation when you're providing externally-remembered tokens to the `Cognito()` constructor.
+Note that if you're calling `check_tokens()` after instantitation, you'll still want to call `verify_tokens()` afterwards it in case it did nothing.
+
+```python
+u = Cognito('your-user-pool-id','your-client-id',
+    id_token='id-token',refresh_token='refresh-token',
+    access_token='access-token')
+
+u.check_tokens()  # Optional, if you want to maybe renew the tokens
+u.verify_tokens()
+```
+
+##### Arguments
+
+No arguments for verify_tokens
 
 #### Logout
 
