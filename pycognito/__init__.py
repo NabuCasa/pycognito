@@ -196,6 +196,12 @@ class Cognito:
         else:
             self.client = boto3.client("cognito-idp", **boto3_client_kwargs)
 
+    @property
+    def user_pool_url(self):
+        return "https://cognito-idp.{}.amazonaws.com/{}".format(
+            self.user_pool_region, self.user_pool_id
+        )
+
     def get_keys(self):
         if self.pool_jwk:
             return self.pool_jwk
@@ -207,9 +213,7 @@ class Cognito:
         # If it is not there use the requests library to get it
         else:
             self.pool_jwk = requests.get(
-                "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-                    self.user_pool_region, self.user_pool_id
-                )
+                self.user_pool_url + "/.well-known/jwks.json"
             ).json()
         return self.pool_jwk
 
