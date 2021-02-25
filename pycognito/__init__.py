@@ -223,26 +223,34 @@ class Cognito:
         return key[0]
 
     def verify_token(self, token, id_name, token_use):
+        # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
+
         kid = jwt.get_unverified_header(token).get("kid")
-        unverified_claims = jwt.get_unverified_claims(token)
-        token_use_verified = unverified_claims.get("token_use") == token_use
-        if not token_use_verified:
-            raise TokenVerificationException(
-                f"Your {id_name!r} token use ({token_use!r}) could not be verified."
-            )
         hmac_key = self.get_key(kid)
         try:
             verified = jwt.decode(
                 token,
                 hmac_key,
                 algorithms=["RS256"],
-                audience=unverified_claims.get("aud"),
-                issuer=unverified_claims.get("iss"),
+                audience=self.client_id,
+                issuer=self.user_pool_url,
+                options={
+                    "require_aud": True,
+                    "require_iss": True,
+                    "require_exp": True,
+                },
             )
         except JWTError:
             raise TokenVerificationException(
                 f"Your {id_name!r} token could not be verified."
             ) from None
+
+        token_use_verified = verified.get("token_use") == token_use
+        if not token_use_verified:
+            raise TokenVerificationException(
+                f"Your {id_name!r} token use ({token_use!r}) could not be verified."
+            )
+
         setattr(self, id_name, token)
         return verified
 
