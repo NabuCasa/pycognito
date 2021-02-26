@@ -200,9 +200,7 @@ class Cognito:
 
     @property
     def user_pool_url(self):
-        return "https://cognito-idp.{}.amazonaws.com/{}".format(
-            self.user_pool_region, self.user_pool_id
-        )
+        return f"https://cognito-idp.{self.user_pool_region}.amazonaws.com/{self.user_pool_id}"
 
     def get_keys(self):
         if self.pool_jwk:
@@ -215,7 +213,7 @@ class Cognito:
         # If it is not there use the requests library to get it
         else:
             self.pool_jwk = requests.get(
-                self.user_pool_url + "/.well-known/jwks.json"
+                f"{self.user_pool_url}/.well-known/jwks.json"
             ).json()
         return self.pool_jwk
 
@@ -264,7 +262,7 @@ class Cognito:
             )
 
         setattr(self, id_name, token)
-        setattr(self, token_use + "_claims", verified)
+        setattr(self, f"{token_use}_claims", verified)
         return verified
 
     def get_user_obj(
