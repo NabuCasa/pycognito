@@ -245,7 +245,7 @@ class Cognito:
                 audience=self.client_id,
                 issuer=self.user_pool_url,
                 options={
-                    "require_aud": True,
+                    "require_aud": token_use != "access",
                     "require_iss": True,
                     "require_exp": True,
                 },
