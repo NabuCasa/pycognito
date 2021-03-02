@@ -706,7 +706,8 @@ class Cognito:
         AuthenticationResult.
         """
         self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
-        self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
+        if "RefreshToken" in tokens["AuthenticationResult"]:
+            self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
         self.verify_token(
             tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
         )
