@@ -833,7 +833,9 @@ class Cognito:
             Username=self.username,
         )
 
-    def admin_create_identity_provider(self, pool_id, provider_name, provider_type, provider_details, **kwargs):
+    def admin_create_identity_provider(
+        self, pool_id, provider_name, provider_type, provider_details, **kwargs
+    ):
         """
         Creates an identity provider
         :param pool_id: The user pool ID
