@@ -847,5 +847,5 @@ class Cognito:
             ProviderName=provider_name,
             ProviderType=provider_type,
             ProviderDetails=provider_details,
-            **kwargs
+            **kwargs,
         )
