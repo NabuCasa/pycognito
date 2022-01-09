@@ -250,9 +250,9 @@ class Cognito:
                     "require_exp": True,
                 },
             )
-        except JWTError:
+        except JWTError as err:
             raise TokenVerificationException(
-                f"Your {id_name!r} token could not be verified."
+                f"Your {id_name!r} token could not be verified ({err})."
             ) from None
 
         token_use_verified = verified.get("token_use") == token_use
