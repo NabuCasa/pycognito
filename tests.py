@@ -16,7 +16,7 @@ import requests_mock
 
 from pycognito import Cognito, UserObj, GroupObj, TokenVerificationException
 from pycognito.aws_srp import AWSSRP
-from pycognito.utils import SrpRequestsHTTPAuth
+from pycognito.utils import RequestsSrpAuth
 
 
 def _mock_authenticate_user(_, client=None):
@@ -416,7 +416,7 @@ class UtilsTestCase(unittest.TestCase):
         test_data = str(uuid.uuid4())
 
         # Mock a test endpoint. We pretend this endpoint would require an Authorization header
-        m.get('http://test.com', text=test_data)
+        r = m.get('http://test.com', text=test_data)
         # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
         # key from above
         m.get(
@@ -427,13 +427,14 @@ class UtilsTestCase(unittest.TestCase):
         now = datetime.datetime.now()
 
         # Standup the actual Requests plugin
-        srp_auth = SrpRequestsHTTPAuth(
+        srp_auth = RequestsSrpAuth(
             username=self.username, password=self.password, user_pool_id=self.user_pool_id,
             user_pool_region='us-east-1', client_id=self.client_id
         )
 
         # Make the actual request
         req = requests.get('http://test.com', auth=srp_auth)
+        req.raise_for_status()
         # Ensure the data returns matches the mocked endpoint
         self.assertEqual(test_data, req.text)
 
@@ -443,6 +444,7 @@ class UtilsTestCase(unittest.TestCase):
         # Make a second request with a time 2 hours in the future
         with freezegun.freeze_time(now + datetime.timedelta(hours=2)):
             req = requests.get('http://test.com', auth=srp_auth)
+            req.raise_for_status()
 
         access_token_new = srp_auth.cognito_client.access_token
         # Check that the access token was refreshed to a new one

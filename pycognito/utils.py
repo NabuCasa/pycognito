@@ -6,11 +6,27 @@ import requests
 from . import Cognito
 
 
-class SrpRequestsHTTPAuth(requests.auth.AuthBase):
+class RequestsSrpAuth(requests.auth.AuthBase):
     """
     A Requests Auth Plugin to automatically populate Authorization header
     with a Cognito token.
 
+    Example:
+
+    ```
+    import requests
+    from pycognito.utils import RequestsSrpAuth
+
+    auth = RequestsSrpAuth(
+        username='myusername',
+        password='secret',
+        user_pool_id='eu-west-1_1234567',
+        client_id='4dn6jbcbhqcofxyczo3ms9z4cc',
+        user_pool_region='eu-west-1',
+    )
+
+    response = requests.get('http://test.com', auth=auth)
+    ```
     """
 
     class token_type(str, Enum):
@@ -26,8 +42,20 @@ class SrpRequestsHTTPAuth(requests.auth.AuthBase):
                  cognito: Cognito = None,
                  http_header: str = 'Authorization',
                  http_header_prefix: str = 'Bearer ',
-                 auth_token_type: token_type = token_type.ID_TOKEN
-                 ) -> object:
+                 auth_token_type: token_type = token_type.ACCESS_TOKEN
+                 ):
+        """
+
+        :param username: Cognito User. Required if `cognito` not set
+        :param password: Password of Cognito User. Required if `cognito` not set
+        :param user_pool_id: Cognito User Pool. Required if `cognito` not set
+        :param user_pool_region: Region of the Cognito User Pool. Required if `cognito` not set
+        :param client_id: Cognito Client ID / Application. Required if :py:attr:`cognito` not set
+        :param cognito: Provide a preconfigured `pycognito.Cognito` instead of `username`, `password` etc
+        :param http_header: The HTTP Header to populate. Defaults to "Authorization" (Basic Authentication)
+        :param http_header_prefix: Prefix a value before the token. Defaults to "Bearer ". (Note the space)
+        :param auth_token_type: Whether to populate the header with ID or ACCESS_TOKEN. Defaults to "ACCESS_TOKEN"
+        """
 
         if cognito:
             self.cognito_client = cognito
@@ -45,7 +73,7 @@ class SrpRequestsHTTPAuth(requests.auth.AuthBase):
         self.http_header_prefix = http_header_prefix
         self.token_type = auth_token_type
 
-    def __call__(self, r: requests.Request):
+    def __call__(self, request: requests.Request):
         # If this is the first time in, we'll need to auth
         if not self.cognito_client.access_token:
             self.cognito_client.authenticate(password=self.__password)
@@ -55,6 +83,6 @@ class SrpRequestsHTTPAuth(requests.auth.AuthBase):
 
         token = getattr(self.cognito_client, self.token_type.value)
 
-        r.headers[self.http_header] = self.http_header_prefix + token
+        request.headers[self.http_header] = self.http_header_prefix + token
 
-        return r
+        return request

@@ -28,12 +28,10 @@ Makes working with AWS Cognito easier for Python developers.
     - [Check Token](#check-token)
     - [Verify Tokens](#verify-tokens)
     - [Logout](#logout)
-- [Cognito SRP Utility](#cognito-srp-utility) `pycognito.aws_srp.AWSSRP`
+- [Cognito SRP Utility](#cognito-srp-utility)
   - [Using AWSSRP](#using-awssrp)
-- [Projects Using pyCognito](#projects-using-pycognito)
-  - [Django pyCognito](#django-pycognito)
-- [Authors](#authors)
-- [Release Notes](#release-notes)
+- [SRP Requests Authenticator](#srp-requests-authenticator)
+
 
 ## Python Versions Supported
 
@@ -495,4 +493,29 @@ client = boto3.client('cognito-idp')
 aws = AWSSRP(username='username', password='password', pool_id='user_pool_id',
              client_id='client_id', client=client)
 tokens = aws.authenticate_user()
+```
+
+## SRP Requests Authenticator
+
+`pycognito.utils.RequestsSrpAuth` is a [Requests](https://docs.python-requests.org/en/latest/) 
+authentication plugin to automatically populate an HTTP header with a Cognito token. By default, it'll populate
+the `Authorization` header using the Cognito Access Token as a `bearer` token.
+
+`RequestsSrpAuth` handles fetching new tokens using the refresh tokens.
+
+### Usage
+
+```python
+import requests
+from pycognito.utils import RequestsSrpAuth
+
+auth = RequestsSrpAuth(
+  username='myusername',
+  password='secret',
+  user_pool_id='eu-west-1_1234567',
+  client_id='4dn6jbcbhqcofxyczo3ms9z4cc',
+  user_pool_region='eu-west-1',
+)
+
+response = requests.get('http://test.com', auth=auth)
 ```
