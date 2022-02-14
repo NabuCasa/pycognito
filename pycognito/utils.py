@@ -29,21 +29,22 @@ class RequestsSrpAuth(requests.auth.AuthBase):
     ```
     """
 
-    class token_type(str, Enum):
-        ID_TOKEN = 'id_token'
-        ACCESS_TOKEN = 'access_token'
+    class TokenType(str, Enum):
+        ID_TOKEN = "id_token"
+        ACCESS_TOKEN = "access_token"
 
-    def __init__(self,
-                 username: str = None,
-                 password: str = None,
-                 user_pool_id: str = None,
-                 user_pool_region: str = None,
-                 client_id: str = None,
-                 cognito: Cognito = None,
-                 http_header: str = 'Authorization',
-                 http_header_prefix: str = 'Bearer ',
-                 auth_token_type: token_type = token_type.ACCESS_TOKEN
-                 ):
+    def __init__(
+        self,
+        username: str = None,
+        password: str = None,
+        user_pool_id: str = None,
+        user_pool_region: str = None,
+        client_id: str = None,
+        cognito: Cognito = None,
+        http_header: str = "Authorization",
+        http_header_prefix: str = "Bearer ",
+        auth_token_type: TokenType = TokenType.ACCESS_TOKEN,
+    ):
         """
 
         :param username: Cognito User. Required if `cognito` not set
