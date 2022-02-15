@@ -250,9 +250,9 @@ class Cognito:
                     "require_exp": True,
                 },
             )
-        except JWTError:
+        except JWTError as err:
             raise TokenVerificationException(
-                f"Your {id_name!r} token could not be verified."
+                f"Your {id_name!r} token could not be verified ({err})."
             ) from None
 
         token_use_verified = verified.get("token_use") == token_use
@@ -415,6 +415,19 @@ class Cognito:
         }
         self._add_secret_hash(params, "SecretHash")
         self.client.confirm_sign_up(**params)
+
+    def resend_confirmation_code(self, username):
+        """
+         Trigger resending the confirmation code message.
+        :param username: User's username
+        :return:
+        """
+        params = {
+            "ClientId": self.client_id,
+            "Username": username,
+        }
+        self._add_secret_hash(params, "SecretHash")
+        self.client.resend_confirmation_code(**params)
 
     def admin_authenticate(self, password):
         """
