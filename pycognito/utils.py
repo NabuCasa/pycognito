@@ -6,6 +6,11 @@ import requests
 from . import Cognito
 
 
+class TokenType(str, Enum):
+    ID_TOKEN = "id_token"
+    ACCESS_TOKEN = "access_token"
+
+
 class RequestsSrpAuth(requests.auth.AuthBase):
     """
     A Requests Auth Plugin to automatically populate Authorization header
@@ -28,10 +33,6 @@ class RequestsSrpAuth(requests.auth.AuthBase):
     response = requests.get('http://test.com', auth=auth)
     ```
     """
-
-    class TokenType(str, Enum):
-        ID_TOKEN = "id_token"
-        ACCESS_TOKEN = "access_token"
 
     def __init__(
         self,
