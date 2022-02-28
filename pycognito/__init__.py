@@ -446,10 +446,11 @@ class Cognito:
         )
         self._set_tokens(tokens)
 
-    def authenticate(self, password):
+    def authenticate(self, password, client_metadata=None):
         """
         Authenticate the user using the SRP protocol
         :param password: The user's passsword
+        :param client_metadata: Metadata you can provide for custom workflows that RespondToAuthChallenge triggers.
         :return:
         """
         aws = AWSSRP(
@@ -460,7 +461,7 @@ class Cognito:
             client=self.client,
             client_secret=self.client_secret,
         )
-        tokens = aws.authenticate_user()
+        tokens = aws.authenticate_user(metadata=client_metadata)
         self._set_tokens(tokens)
 
     def new_password_challenge(self, password, new_password):

@@ -243,7 +243,7 @@ class AWSSRP:
             )
         return response
 
-    def authenticate_user(self, client=None):
+    def authenticate_user(self, client=None, metadata=None):
         boto_client = self.client or client
         auth_params = self.get_auth_params()
         response = boto_client.initiate_auth(
@@ -257,6 +257,7 @@ class AWSSRP:
                 ClientId=self.client_id,
                 ChallengeName=self.PASSWORD_VERIFIER_CHALLENGE,
                 ChallengeResponses=challenge_response,
+                **dict(ClientMetadata=metadata) if metadata else {},
             )
 
             if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
