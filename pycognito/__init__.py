@@ -867,3 +867,27 @@ class Cognito:
             ProviderDetails=provider_details,
             **kwargs,
         )
+
+    def describe_user_pool_client(self, pool_id: str, client_id: str):
+        """
+        Returns configuration information of a specified user pool app client
+        :param pool_id: The user pool ID
+        :param client_id: The client ID
+        :return: client json
+        """
+        return self.client.describe_user_pool_client(
+            UserPoolId=pool_id, ClientId=client_id
+        )["UserPoolClient"]
+
+    def admin_update_user_pool_client(self, pool_id: str, client_id: str, **kwargs):
+        """
+        Updates configuration information of a specified user pool app client
+        :param pool_id: The identity pool ID
+        :param client_id: The identity pool name
+        :return:
+        """
+        self.client.update_user_pool_client(
+            UserPoolId=pool_id,
+            ClientId=client_id,
+            **kwargs,
+        )
