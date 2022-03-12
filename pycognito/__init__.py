@@ -461,7 +461,7 @@ class Cognito:
             client=self.client,
             client_secret=self.client_secret,
         )
-        tokens = aws.authenticate_user(metadata=client_metadata)
+        tokens = aws.authenticate_user(client_metadata=client_metadata)
         self._set_tokens(tokens)
 
     def new_password_challenge(self, password, new_password):

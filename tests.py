@@ -19,7 +19,7 @@ from pycognito.aws_srp import AWSSRP
 from pycognito.utils import RequestsSrpAuth
 
 
-def _mock_authenticate_user(_, client=None, metadata=None):
+def _mock_authenticate_user(_, client=None, client_metadata=None):
     return {
         "AuthenticationResult": {
             "TokenType": "admin",
