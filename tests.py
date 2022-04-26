@@ -364,6 +364,35 @@ class AWSSRPTestCase(unittest.TestCase):
             self.assertTrue("RefreshToken" in tokens["AuthenticationResult"])
             stub.assert_no_pending_responses()
 
+    def test_cognito_formatted_timestamp(self):
+        self.assertEqual(
+            self.aws.get_cognito_formatted_timestamp(
+                datetime.datetime(2022, 1, 1, 0, 0, 0)
+            ),
+            "Sat Jan 1 00:00:00 UTC 2022",
+        )
+
+        self.assertEqual(
+            self.aws.get_cognito_formatted_timestamp(
+                datetime.datetime(2022, 1, 2, 12, 0, 0)
+            ),
+            "Sun Jan 2 12:00:00 UTC 2022",
+        )
+
+        self.assertEqual(
+            self.aws.get_cognito_formatted_timestamp(
+                datetime.datetime(2022, 1, 3, 9, 0, 0)
+            ),
+            "Mon Jan 3 09:00:00 UTC 2022",
+        )
+
+        self.assertEqual(
+            self.aws.get_cognito_formatted_timestamp(
+                datetime.datetime(2022, 12, 31, 23, 59, 59)
+            ),
+            "Sat Dec 31 23:59:59 UTC 2022",
+        )
+
 
 @moto.mock_cognitoidp
 class UtilsTestCase(unittest.TestCase):

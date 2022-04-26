@@ -202,18 +202,41 @@ class AWSSRP:
         hmac_obj = hmac.new(bytearray(client_secret, "utf-8"), message, hashlib.sha256)
         return base64.standard_b64encode(hmac_obj.digest()).decode("utf-8")
 
+    @staticmethod
+    def get_cognito_formatted_timestamp(input_datetime):
+        weekday_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        month_names = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+
+        return "%s %s %d %02d:%02d:%02d UTC %d" % (
+            weekday_names[input_datetime.weekday()],
+            month_names[input_datetime.month - 1],
+            input_datetime.day,
+            input_datetime.hour,
+            input_datetime.minute,
+            input_datetime.second,
+            input_datetime.year,
+        )
+
     def process_challenge(self, challenge_parameters):
         internal_username = challenge_parameters["USERNAME"]
         user_id_for_srp = challenge_parameters["USER_ID_FOR_SRP"]
         salt_hex = challenge_parameters["SALT"]
         srp_b_hex = challenge_parameters["SRP_B"]
         secret_block_b64 = challenge_parameters["SECRET_BLOCK"]
-        # re strips leading zero from a day number (required by AWS Cognito)
-        timestamp = re.sub(
-            r" 0(\d) ",
-            r" \1 ",
-            datetime.datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
-        )
+        timestamp = self.get_cognito_formatted_timestamp(datetime.datetime.utcnow())
         hkdf = self.get_password_authentication_key(
             user_id_for_srp, self.password, hex_to_long(srp_b_hex), salt_hex
         )
