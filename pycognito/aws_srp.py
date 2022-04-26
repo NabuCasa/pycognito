@@ -33,6 +33,21 @@ N_HEX = (
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L49
 G_HEX = "2"
 INFO_BITS = bytearray("Caldera Derived Key", "utf-8")
+WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+MONTH_NAMES = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+]
 
 
 def hash_sha256(buf):
@@ -204,25 +219,9 @@ class AWSSRP:
 
     @staticmethod
     def get_cognito_formatted_timestamp(input_datetime):
-        weekday_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        month_names = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-        ]
-
         return "%s %s %d %02d:%02d:%02d UTC %d" % (
-            weekday_names[input_datetime.weekday()],
-            month_names[input_datetime.month - 1],
+            WEEKDAY_NAMES[input_datetime.weekday()],
+            MONTH_NAMES[input_datetime.month - 1],
             input_datetime.day,
             input_datetime.hour,
             input_datetime.minute,
