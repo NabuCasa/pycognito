@@ -14,7 +14,7 @@ from .exceptions import TokenVerificationException
 def cognito_to_dict(attr_list, attr_map=None):
     if attr_map is None:
         attr_map = {}
-    attr_dict = dict()
+    attr_dict = {}
     for attr in attr_list:
         name = attr.get("Name")
         value = attr.get("Value")
@@ -77,9 +77,7 @@ class UserObj:
         self._metadata = {} if metadata is None else metadata
 
     def __repr__(self):
-        return "<{class_name}: {uni}>".format(
-            class_name=self.__class__.__name__, uni=self.__unicode__()
-        )
+        return f"<{self.__class__.__name__}: {self.__unicode__()}>"
 
     def __unicode__(self):
         return self.username
@@ -129,9 +127,7 @@ class GroupObj:
         return self.group_name
 
     def __repr__(self):
-        return "<{class_name}: {uni}>".format(
-            class_name=self.__class__.__name__, uni=self.__unicode__()
-        )
+        return f"<{self.__class__.__name__}: {self.__unicode__()}>"
 
 
 class Cognito:

@@ -6,7 +6,6 @@ import hmac
 import os
 
 import boto3
-import six
 
 from .exceptions import ForceChangePasswordException
 
@@ -64,7 +63,7 @@ def hex_to_long(hex_string):
 
 
 def long_to_hex(long_num):
-    return "%x" % long_num
+    return f"{long_num:x}"
 
 
 def get_random(nbytes):
@@ -78,14 +77,14 @@ def pad_hex(long_int):
     :param {Long integer|String} long_int Number or string to pad.
     :return {String} Padded hex string.
     """
-    if not isinstance(long_int, six.string_types):
+    if not isinstance(long_int, str):
         hash_str = long_to_hex(long_int)
     else:
         hash_str = long_int
     if len(hash_str) % 2 == 1:
-        hash_str = "0%s" % hash_str
+        hash_str = f"0{hash_str}"
     elif hash_str[0] in "89ABCDEFabcdef":
-        hash_str = "00%s" % hash_str
+        hash_str = f"00{hash_str}"
     return hash_str
 
 
@@ -182,7 +181,7 @@ class AWSSRP:
         u_value = calculate_u(self.large_a_value, server_b_value)
         if u_value == 0:
             raise ValueError("U cannot be zero.")
-        username_password = "%s%s:%s" % (self.pool_id.split("_")[1], username, password)
+        username_password = f"{self.pool_id.split('_')[1]}{username}:{password}"
         username_password_hash = hash_sha256(username_password.encode("utf-8"))
 
         x_value = hex_to_long(hex_hash(pad_hex(salt) + username_password_hash))
@@ -218,15 +217,7 @@ class AWSSRP:
 
     @staticmethod
     def get_cognito_formatted_timestamp(input_datetime):
-        return "%s %s %d %02d:%02d:%02d UTC %d" % (
-            WEEKDAY_NAMES[input_datetime.weekday()],
-            MONTH_NAMES[input_datetime.month - 1],
-            input_datetime.day,
-            input_datetime.hour,
-            input_datetime.minute,
-            input_datetime.second,
-            input_datetime.year,
-        )
+        return f"{WEEKDAY_NAMES[input_datetime.weekday()]} {MONTH_NAMES[input_datetime.month - 1]} {input_datetime.day:d} {input_datetime.hour:02d}:{input_datetime.minute:02d}:{input_datetime.second:02d} UTC {input_datetime.year:d}"
 
     def process_challenge(self, challenge_parameters):
         internal_username = challenge_parameters["USERNAME"]
@@ -289,7 +280,7 @@ class AWSSRP:
             return tokens
 
         raise NotImplementedError(
-            "The %s challenge is not supported" % response["ChallengeName"]
+            f"The {response['ChallengeName']} challenge is not supported"
         )
 
     def set_new_password_challenge(self, new_password, client=None):
@@ -326,5 +317,5 @@ class AWSSRP:
             return tokens
 
         raise NotImplementedError(
-            "The %s challenge is not supported" % response["ChallengeName"]
+            f"The {response['ChallengeName']} challenge is not supported"
         )
