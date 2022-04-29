@@ -240,6 +240,7 @@ class Cognito:
                 algorithms=["RS256"],
                 audience=self.client_id,
                 issuer=self.user_pool_url,
+                access_token=self.access_token,
                 options={
                     "require_aud": token_use != "access",
                     "require_iss": True,
