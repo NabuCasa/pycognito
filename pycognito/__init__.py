@@ -728,12 +728,10 @@ class Cognito:
         Helper function to verify and set token attributes based on a Cognito
         AuthenticationResult.
         """
+        self.verify_token(tokens["AuthenticationResult"]["AccessToken"], "access_token", "access")
         self.verify_token(tokens["AuthenticationResult"]["IdToken"], "id_token", "id")
         if "RefreshToken" in tokens["AuthenticationResult"]:
             self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
-        self.verify_token(
-            tokens["AuthenticationResult"]["AccessToken"], "access_token", "access"
-        )
         self.token_type = tokens["AuthenticationResult"]["TokenType"]
 
     def _set_attributes(self, response, attribute_dict):
