@@ -844,7 +844,7 @@ class Cognito:
         """
         self.client.admin_disable_user(
             UserPoolId=self.user_pool_id,
-            Username=self.username,
+            Username=username,
         )
 
     def admin_create_identity_provider(
