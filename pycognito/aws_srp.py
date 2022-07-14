@@ -7,7 +7,7 @@ import os
 
 import boto3
 
-from .exceptions import ForceChangePasswordException
+from .exceptions import ForceChangePasswordException, MFAChallengeException
 
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
 N_HEX = (
@@ -115,6 +115,8 @@ def calculate_u(big_a, big_b):
 
 class AWSSRP:
 
+    SMS_MFA_CHALLENGE = "SMS_MFA"
+    SOFTWARE_TOKEN_MFA_CHALLENGE = "SOFTWARE_TOKEN_MFA"
     NEW_PASSWORD_REQUIRED_CHALLENGE = "NEW_PASSWORD_REQUIRED"
     PASSWORD_VERIFIER_CHALLENGE = "PASSWORD_VERIFIER"
 
@@ -275,6 +277,18 @@ class AWSSRP:
             if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
                 raise ForceChangePasswordException(
                     "Change password before authenticating"
+                )
+
+            if tokens.get("ChallengeName") == self.SMS_MFA_CHALLENGE:
+                raise MFAChallengeException(
+                    "Do SMS MFA",
+                    tokens
+                )
+
+            if tokens.get("ChallengeName") == self.SOFTWARE_TOKEN_MFA_CHALLENGE:
+                raise MFAChallengeException(
+                    "Do Software Token MFA",
+                    tokens
                 )
 
             return tokens

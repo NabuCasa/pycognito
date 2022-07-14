@@ -8,3 +8,14 @@ class ForceChangePasswordException(WarrantException):
 
 class TokenVerificationException(WarrantException):
     """Raised when token verification fails."""
+
+
+class MFAChallengeException(WarrantException):
+    """Raised when MFA is required."""
+
+    def __init__(self, message, tokens):
+        self.message = message
+        self._tokens = tokens
+        
+    def get_tokens(self):
+        return self._tokens
