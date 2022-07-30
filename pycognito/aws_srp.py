@@ -7,7 +7,11 @@ import os
 
 import boto3
 
-from .exceptions import ForceChangePasswordException, MFAChallengeException
+from .exceptions import (
+    ForceChangePasswordException,
+    SoftwareTokenMFAChallengeException,
+    SMSMFAChallengeException,
+)
 
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
 N_HEX = (
@@ -280,15 +284,11 @@ class AWSSRP:
                 )
 
             if tokens.get("ChallengeName") == self.SMS_MFA_CHALLENGE:
-                raise MFAChallengeException(
-                    "Do SMS MFA",
-                    tokens
-                )
+                raise SMSMFAChallengeException("Do SMS MFA", tokens)
 
             if tokens.get("ChallengeName") == self.SOFTWARE_TOKEN_MFA_CHALLENGE:
-                raise MFAChallengeException(
-                    "Do Software Token MFA",
-                    tokens
+                raise SoftwareTokenMFAChallengeException(
+                    "Do Software Token MFA", tokens
                 )
 
             return tokens
