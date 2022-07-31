@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 
-VERSION = "2022.05.0"
+VERSION = "2022.07.0"
 
 setup(
     name="pycognito",

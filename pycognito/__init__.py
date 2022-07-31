@@ -872,6 +872,30 @@ class Cognito:
             **kwargs,
         )
 
+    def admin_describe_identity_provider(self, pool_id, provider_name):
+        """
+        Updates an existing identity provider
+        :param pool_id: The user pool ID
+        :param provider_name: The identity provider name
+        :return: dict of identity provider
+        """
+        self.client.describe_identity_provider(
+            UserPoolId=pool_id, ProviderName=provider_name
+        )
+
+    def admin_update_identity_provider(self, pool_id, provider_name, **kwargs):
+        """
+        Updates an existing identity provider
+        :param pool_id: The user pool ID
+        :param provider_name: The identity provider name
+        :return:
+        """
+        self.client.update_identity_provider(
+            UserPoolId=pool_id,
+            ProviderName=provider_name,
+            **kwargs,
+        )
+
     def describe_user_pool_client(self, pool_id: str, client_id: str):
         """
         Returns configuration information of a specified user pool app client
