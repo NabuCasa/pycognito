@@ -879,7 +879,7 @@ class Cognito:
         :param provider_name: The identity provider name
         :return: dict of identity provider
         """
-        self.client.describe_identity_provider(
+        return self.client.describe_identity_provider(
             UserPoolId=pool_id, ProviderName=provider_name
         )
 
