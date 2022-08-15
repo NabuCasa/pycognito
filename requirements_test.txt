@@ -6,4 +6,4 @@ pylint==2.13.8
 pytest==7.1.2
 moto>=3.0.3
 requests-mock==1.9.3
-freezegun==1.2.1
+freezegun==1.2.2
