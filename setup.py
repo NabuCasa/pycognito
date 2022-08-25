@@ -27,11 +27,13 @@ setup(
     url="https://github.com/pvizeli/pycognito",
     license="Apache License 2.0",
     install_requires=[
-        "boto3>=1.10.49",
         "envs>=1.3",
         "python-jose[cryptography]>=3.2.0",
         "requests>=2.22.0",
     ],
+    extras_require={
+        "dev": ["boto3>=1.10.49"],
+    },
     include_package_data=True,
     zip_safe=True,
 )
