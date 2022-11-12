@@ -682,6 +682,8 @@ class Cognito:
         )
 
     def admin_reset_password(self, username, client_metadata=None):
+        if client_metadata is None:
+            client_metadata = {}
         self.client.admin_reset_user_password(
             UserPoolId=self.user_pool_id,
             Username=username,
