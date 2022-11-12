@@ -36,7 +36,14 @@ def dict_to_cognito(attributes, attr_map=None):
         if value in attributes.keys():
             attributes[key] = attributes.pop(value)
 
-    return [{"Name": key, "Value": value} for key, value in attributes.items()]
+    def normalize(val):
+        if isinstance(val, bool):
+            return "true" if val else "false"
+        return val
+
+    return [
+        {"Name": key, "Value": normalize(value)} for key, value in attributes.items()
+    ]
 
 
 def camel_to_snake(camel_str):
