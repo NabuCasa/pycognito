@@ -210,7 +210,8 @@ class Cognito:
         # If it is not there use the requests library to get it
         else:
             self.pool_jwk = requests.get(
-                f"{self.user_pool_url}/.well-known/jwks.json"
+                f"{self.user_pool_url}/.well-known/jwks.json",
+                timeout=15
             ).json()
         return self.pool_jwk
 

@@ -18,15 +18,12 @@ ignore=tests_*
 generated-members=botocore.errorfactory
 
 disable=
-  abstract-class-little-used,
-  abstract-class-not-used,
   abstract-method,
   cyclic-import,
   duplicate-code,
   global-statement,
   locally-disabled,
   not-context-manager,
-  redefined-variable-type,
   too-few-public-methods,
   too-many-arguments,
   too-many-branches,
@@ -39,9 +36,7 @@ disable=
   unused-argument,
   missing-docstring,
   line-too-long,
-  bad-continuation,
   too-few-public-methods,
-  no-self-use,
   too-many-locals,
   too-many-branches
 
