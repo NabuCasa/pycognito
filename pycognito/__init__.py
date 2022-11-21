@@ -156,6 +156,7 @@ class Cognito:
         secret_key=None,
         session=None,
         botocore_config=None,
+        boto3_client_kwargs=None,
     ):
         """
         :param user_pool_id: Cognito User Pool ID
@@ -168,6 +169,7 @@ class Cognito:
         :param secret_key: AWS IAM secret key
         :param session: Boto3 client session
         :param botocore_config: Botocore Config object for the client
+        :param boto3_client_kwargs: Keyword args to pass to Boto3 for client creation
         """
 
         self.user_pool_id = user_pool_id
@@ -188,7 +190,8 @@ class Cognito:
         self.pool_jwk = None
         self.mfa_tokens = None
 
-        boto3_client_kwargs = {}
+        if not boto3_client_kwargs:
+            boto3_client_kwargs = {}
         if access_key and secret_key:
             boto3_client_kwargs["aws_access_key_id"] = access_key
             boto3_client_kwargs["aws_secret_access_key"] = secret_key
