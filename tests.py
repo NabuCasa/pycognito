@@ -213,7 +213,12 @@ class CognitoAuthTestCase(unittest.TestCase):
             "9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjMyNTAzNjgwMDAwfQ.C-1gPxrhUsiWeCvMvaZuuQYarkDNAc"
             "pEGJPIqu_SrKQ"
         )
-        self.assertFalse(self.user.check_token())
+        try:
+            valid = self.user.check_token()
+        except OverflowError:
+            self.skipTest("This test requires 64-bit time_t")
+        else:
+            self.assertFalse(valid)
 
     @patch("pycognito.Cognito", autospec=True)
     def test_validate_verification(self, cognito_user):
