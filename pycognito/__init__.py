@@ -599,6 +599,8 @@ class Cognito:
             "enabled": user.get("Enabled"),
             "user_status": user.get("UserStatus"),
             "username": user.get("Username"),
+            "create_date": user.get("UserCreateDate"),
+            "modified_date": user.get("UserLastModifiedDate"),
             "id_token": self.id_token,
             "access_token": self.access_token,
             "refresh_token": self.refresh_token,
