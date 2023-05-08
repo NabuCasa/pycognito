@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 import requests.auth
 import requests
@@ -36,12 +37,12 @@ class RequestsSrpAuth(requests.auth.AuthBase):
 
     def __init__(
         self,
-        username: str | None = None,
-        password: str | None = None,
-        user_pool_id: str | None = None,
-        user_pool_region: str | None = None,
-        client_id: str | None = None,
-        cognito: Cognito | None = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        user_pool_id: Optional[str] = None,
+        user_pool_region: Optional[str] = None,
+        client_id: Optional[str] = None,
+        cognito: Optional[Cognito] = None,
         http_header: str = "Authorization",
         http_header_prefix: str = "Bearer ",
         auth_token_type: TokenType = TokenType.ACCESS_TOKEN,
