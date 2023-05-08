@@ -263,7 +263,7 @@ class AWSSRP:
             )
         return response
 
-    def authenticate_user(self, client=None, client_metadata=None):
+    def authenticate_user(self, client=boto3.client, client_metadata=None):
         boto_client = self.client or client
         auth_params = self.get_auth_params()
         response = boto_client.initiate_auth(
@@ -301,7 +301,7 @@ class AWSSRP:
             f"The {response['ChallengeName']} challenge is not supported"
         )
 
-    def set_new_password_challenge(self, new_password, client=None):
+    def set_new_password_challenge(self, new_password, client=boto3.client):
         boto_client = self.client or client
         auth_params = self.get_auth_params()
         response = boto_client.initiate_auth(
