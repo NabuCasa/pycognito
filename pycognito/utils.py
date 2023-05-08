@@ -36,12 +36,12 @@ class RequestsSrpAuth(requests.auth.AuthBase):
 
     def __init__(
         self,
-        username: str|None = None,
-        password: str|None = None,
-        user_pool_id: str|None = None,
-        user_pool_region: str|None = None,
-        client_id: str|None = None,
-        cognito: Cognito|None = None,
+        username: str | None = None,
+        password: str | None = None,
+        user_pool_id: str | None = None,
+        user_pool_region: str | None = None,
+        client_id: str | None = None,
+        cognito: Cognito | None = None,
         http_header: str = "Authorization",
         http_header_prefix: str = "Bearer ",
         auth_token_type: TokenType = TokenType.ACCESS_TOKEN,

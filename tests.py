@@ -111,7 +111,6 @@ class CognitoAuthTestCase(unittest.TestCase):
     @patch("pycognito.aws_srp.AWSSRP.authenticate_user", _mock_authenticate_user)
     @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
     def test_authenticate(self):
-
         self.user.authenticate(self.password)
         self.assertNotEqual(self.user.access_token, None)
         self.assertNotEqual(self.user.id_token, None)
@@ -148,7 +147,6 @@ class CognitoAuthTestCase(unittest.TestCase):
     @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
     @patch("pycognito.Cognito._add_secret_hash", return_value=None)
     def test_renew_tokens(self, _):
-
         stub = Stubber(self.user.client)
 
         # By the stubber nature, we need to add the sequence
@@ -268,7 +266,6 @@ class CognitoAuthTestCase(unittest.TestCase):
 
     @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
     def test_admin_authenticate(self):
-
         stub = Stubber(self.user.client)
 
         # By the stubber nature, we need to add the sequence
@@ -328,7 +325,6 @@ class AWSSRPTestCase(unittest.TestCase):
     @patch("pycognito.aws_srp.AWSSRP.get_auth_params", _mock_get_params)
     @patch("pycognito.aws_srp.AWSSRP.process_challenge", return_value={})
     def test_authenticate_user(self, _):
-
         stub = Stubber(self.aws.client)
 
         # By the stubber nature, we need to add the sequence
@@ -405,7 +401,6 @@ class UtilsTestCase(unittest.TestCase):
     password = "Test1234"
 
     def setUp(self) -> None:
-
         cognitoidp_client = boto3.client("cognito-idp", region_name="us-east-1")
 
         user_pool = cognitoidp_client.create_user_pool(
