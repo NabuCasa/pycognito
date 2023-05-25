@@ -279,7 +279,7 @@ class AWSSRP:
                 ClientId=self.client_id,
                 ChallengeName=self.PASSWORD_VERIFIER_CHALLENGE,
                 ChallengeResponses=challenge_response,
-                **dict(ClientMetadata=client_metadata) if client_metadata else {},
+                ClientMetadata=client_metadata or {},
             )
 
             if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
