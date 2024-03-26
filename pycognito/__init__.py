@@ -260,6 +260,7 @@ class Cognito:
                 issuer=self.user_pool_url,
                 options={
                     "require": required_claims,
+                    "verify_iat": False,
                 },
             )
         except jwt.PyJWTError as err:
