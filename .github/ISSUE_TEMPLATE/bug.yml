@@ -1,0 +1,43 @@
+name: "Report a bug with pyCognito"
+description: Report an issue with pyCognito
+body:
+- type: textarea
+  attributes:
+    label: The problem
+    placeholder: >-
+      Describe the issue you are experiencing here to communicate to the
+      maintainers. Tell us what you were trying to do and what happened.
+  validations:
+    required: true
+- type: markdown
+  attributes:
+    value: |
+      ## Environment
+- type: input
+  attributes:
+    label: Operating system
+  validations:
+    required: true
+- type: textarea
+  validations:
+    required: true
+  attributes:
+    label: Python version
+    render: txt
+- type: textarea
+  validations:
+    required: true
+  attributes:
+    label: Problem-relevant code
+    description: >-
+      A minimal example to reproduce the bug
+    render: python
+- type: textarea
+  attributes:
+    label: Traceback/Error logs
+    description: >-
+       If you come across any trace or error logs, please provide them.
+    render: txt
+- type: textarea
+  attributes:
+    label: Additional information
