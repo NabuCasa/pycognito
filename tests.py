@@ -213,7 +213,12 @@ class CognitoAuthTestCase(unittest.TestCase):
             "9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjMyNTAzNjgwMDAwfQ.C-1gPxrhUsiWeCvMvaZuuQYarkDNAc"
             "pEGJPIqu_SrKQ"
         )
-        self.assertFalse(self.user.check_token())
+        try:
+            valid = self.user.check_token()
+        except OverflowError:
+            self.skipTest("This test requires 64-bit time_t")
+        else:
+            self.assertFalse(valid)
 
     @patch("pycognito.Cognito", autospec=True)
     def test_validate_verification(self, cognito_user):
@@ -394,10 +399,10 @@ class AWSSRPTestCase(unittest.TestCase):
         )
 
 
-@moto.mock_cognitoidp
+@moto.mock_aws
 class UtilsTestCase(unittest.TestCase):
     username = "bob@test.com"
-    password = "Test1234"
+    password = "Test1234!"
 
     def setUp(self) -> None:
 
@@ -434,6 +439,12 @@ class UtilsTestCase(unittest.TestCase):
             TemporaryPassword=self.password,
             MessageAction="SUPPRESS",
         )
+        cognitoidp_client.admin_set_user_password(
+            UserPoolId=self.user_pool_id,
+            Username=self.username,
+            Password=self.password,
+            Permanent=True,
+        )
 
     @requests_mock.Mocker()
     def test_srp_requests_http_auth(self, m):
@@ -455,7 +466,7 @@ class UtilsTestCase(unittest.TestCase):
             body=jwks_public_key_f,
         )
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
 
         # Standup the actual Requests plugin
         srp_auth = RequestsSrpAuth(

@@ -45,6 +45,7 @@ class RequestsSrpAuth(requests.auth.AuthBase):
         http_header: str = "Authorization",
         http_header_prefix: str = "Bearer ",
         auth_token_type: TokenType = TokenType.ACCESS_TOKEN,
+        boto3_client_kwargs=None,
     ):
         """
 
@@ -57,6 +58,7 @@ class RequestsSrpAuth(requests.auth.AuthBase):
         :param http_header: The HTTP Header to populate. Defaults to "Authorization" (Basic Authentication)
         :param http_header_prefix: Prefix a value before the token. Defaults to "Bearer ". (Note the space)
         :param auth_token_type: Whether to populate the header with ID or ACCESS_TOKEN. Defaults to "ACCESS_TOKEN"
+        :param boto3_client_kwargs: Keyword args to pass to Boto3 for client creation
         """
 
         if cognito:
@@ -67,6 +69,7 @@ class RequestsSrpAuth(requests.auth.AuthBase):
                 client_id=client_id,
                 user_pool_region=user_pool_region,
                 username=username,
+                boto3_client_kwargs=boto3_client_kwargs,
             )
 
         self.username = username

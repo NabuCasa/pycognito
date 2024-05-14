@@ -2,7 +2,7 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 
-VERSION = "2022.11.1"
+VERSION = "2024.2.0"
 
 setup(
     name="pycognito",
@@ -11,11 +11,11 @@ setup(
     long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
     classifiers=[
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Environment :: Web Environment",
     ],
@@ -29,7 +29,7 @@ setup(
     install_requires=[
         "boto3>=1.10.49",
         "envs>=1.3",
-        "python-jose[cryptography]>=3.2.0",
+        "pyjwt[crypto]>=2.8.0",
         "requests>=2.22.0",
     ],
     include_package_data=True,
