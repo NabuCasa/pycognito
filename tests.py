@@ -1,6 +1,7 @@
 import datetime
 import unittest
 import os.path
+from unittest.mock import patch
 import uuid
 
 import freezegun
@@ -9,7 +10,6 @@ import moto.cognitoidp
 import boto3
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
-from mock import patch
 from envs import env
 import requests
 import requests_mock
