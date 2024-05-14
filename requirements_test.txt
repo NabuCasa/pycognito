@@ -1,9 +1,9 @@
 mock==4.0.3
 coverage==7.5.1
-black==22.10.0
+black==24.4.2
 flake8==7.0.0
 pylint==2.15.5
-pytest==7.1.2
+pytest==8.2.0
 moto[cognitoidp]>=5.0.0
-requests-mock==1.9.3
-freezegun==1.2.1
+requests-mock==1.12.1
+freezegun==1.5.1
