@@ -14,7 +14,7 @@ from envs import env
 import requests
 import requests_mock
 
-from pycognito import Cognito, UserObj, GroupObj, TokenVerificationException, helpers
+from pycognito import Cognito, UserObj, GroupObj, TokenVerificationException
 from pycognito.aws_srp import AWSSRP
 from pycognito.utils import RequestsSrpAuth
 
@@ -494,17 +494,6 @@ class UtilsTestCase(unittest.TestCase):
         access_token_new = srp_auth.cognito_client.access_token
         # Check that the access token was refreshed to a new one
         self.assertNotEqual(access_token_orig, access_token_new)
-
-
-class TestCaseHelpersIsInt(unittest.TestCase):
-
-    def test_truthy(self):
-        for value in [1, 0, -1]:
-            self.assertTrue(helpers.is_int(value))
-
-    def test_falsy(self):
-        for value in [1.0, "1", "0", "-1", "1.0", "A", "Z", None]:
-            self.assertFalse(helpers.is_int(value))
 
 
 if __name__ == "__main__":
