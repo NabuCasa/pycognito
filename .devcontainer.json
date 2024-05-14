@@ -1,0 +1,41 @@
+{
+  "name": "pycognito dev",
+  "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.8",
+  "postStartCommand": "python3 -m pip install -e .",
+  "postCreateCommand": "python3 -m pip install -r requirements_test.txt tox",
+  "containerUser": "vscode",
+  "containerEnv": {
+    "GIT_EDITOR": "code --wait"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "visualstudioexptteam.vscodeintellicode"
+      ],
+      "settings": {
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.rulers": [
+          88
+        ],
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "always",
+          "source.organizeImports": "always"
+        },
+        "files.trimTrailingWhitespace": true,
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  }
+}

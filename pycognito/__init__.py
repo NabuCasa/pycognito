@@ -1,10 +1,11 @@
 import ast
+import base64
 import datetime
 import re
 
 import boto3
 from envs import env
-from jose import JWTError, jwt
+import jwt
 import requests
 
 from .aws_srp import AWSSRP
@@ -248,31 +249,40 @@ class Cognito:
         # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
 
         kid = jwt.get_unverified_header(token).get("kid")
-        hmac_key = self.get_key(kid)
+        hmac_key = jwt.api_jwk.PyJWK(self.get_key(kid)).key
+        required_claims = (["aud"] if token_use != "access" else []) + ["iss", "exp"]
         try:
-            verified = jwt.decode(
+            decoded = jwt.api_jwt.decode_complete(
                 token,
                 hmac_key,
                 algorithms=["RS256"],
-                audience=self.client_id,
+                audience=self.client_id if token_use != "access" else None,
                 issuer=self.user_pool_url,
-                access_token=self.access_token,
                 options={
-                    "require_aud": token_use != "access",
-                    "require_iss": True,
-                    "require_exp": True,
+                    "require": required_claims,
                 },
             )
-        except JWTError as err:
+        except jwt.PyJWTError as err:
             raise TokenVerificationException(
                 f"Your {id_name!r} token could not be verified ({err})."
             ) from None
+        verified, header = decoded["payload"], decoded["header"]
 
         token_use_verified = verified.get("token_use") == token_use
         if not token_use_verified:
             raise TokenVerificationException(
                 f"Your {id_name!r} token use ({token_use!r}) could not be verified."
             )
+
+        # Compute and verify at_hash (formerly done by python-jose)
+        if "at_hash" in verified:
+            alg_obj = jwt.get_algorithm_by_name(header["alg"])
+            digest = alg_obj.compute_hash_digest(self.access_token)
+            at_hash = base64.urlsafe_b64encode(digest[: (len(digest) // 2)]).rstrip("=")
+            if at_hash != verified["at_hash"]:
+                raise TokenVerificationException(
+                    "at_hash claim does not match access_token."
+                )
 
         setattr(self, id_name, token)
         setattr(self, f"{token_use}_claims", verified)
@@ -326,7 +336,9 @@ class Cognito:
         if not self.access_token:
             raise AttributeError("Access Token Required to Check Token")
         now = datetime.datetime.now()
-        dec_access_token = jwt.get_unverified_claims(self.access_token)
+        dec_access_token = jwt.decode(
+            self.access_token, options={"verify_signature": False}
+        )
 
         if now > datetime.datetime.fromtimestamp(dec_access_token["exp"]):
             expired = True
@@ -599,6 +611,8 @@ class Cognito:
             "enabled": user.get("Enabled"),
             "user_status": user.get("UserStatus"),
             "username": user.get("Username"),
+            "create_date": user.get("UserCreateDate"),
+            "modified_date": user.get("UserLastModifiedDate"),
             "id_token": self.id_token,
             "access_token": self.access_token,
             "refresh_token": self.refresh_token,
