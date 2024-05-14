@@ -491,8 +491,8 @@ class Cognito:
         except MFAChallengeException as mfa_challenge:
             self.mfa_tokens = mfa_challenge.get_tokens()
             raise mfa_challenge
-        else:
-            self._set_tokens(tokens)
+
+        self._set_tokens(tokens)
 
     def new_password_challenge(self, password, new_password):
         """

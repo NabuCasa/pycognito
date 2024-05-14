@@ -41,4 +41,4 @@ disable=
   too-many-branches
 
 [EXCEPTIONS]
-overgeneral-exceptions=Exception
+overgeneral-exceptions=builtins.Exception
