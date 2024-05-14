@@ -10,6 +10,7 @@ import requests
 
 from .aws_srp import AWSSRP
 from .exceptions import TokenVerificationException, MFAChallengeException
+from .helpers import is_int
 
 
 def cognito_to_dict(attr_list, attr_map=None):
@@ -260,6 +261,7 @@ class Cognito:
                 issuer=self.user_pool_url,
                 options={
                     "require": required_claims,
+                    "verify_iat": False,
                 },
             )
         except jwt.PyJWTError as err:
@@ -272,6 +274,11 @@ class Cognito:
         if not token_use_verified:
             raise TokenVerificationException(
                 f"Your {id_name!r} token use ({token_use!r}) could not be verified."
+            )
+
+        if (iat := verified.get("iat")) and not is_int(iat):
+            raise TokenVerificationException(
+                f"Your {id_name!r} token's iat claim is not an integer."
             )
 
         # Compute and verify at_hash (formerly done by python-jose)
