@@ -275,7 +275,7 @@ class Cognito:
                 f"Your {id_name!r} token use ({token_use!r}) could not be verified."
             )
 
-        if (iat := verified.get("iat")) is None:
+        if (iat := verified.get("iat")) is not None:
             try:
                 int(iat)
             except ValueError as execption:
