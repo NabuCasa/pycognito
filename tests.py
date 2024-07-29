@@ -14,7 +14,13 @@ from envs import env
 import requests
 import requests_mock
 
-from pycognito import Cognito, UserObj, GroupObj, TokenVerificationException
+from pycognito import (
+    is_cognito_attr_list,
+    Cognito,
+    UserObj,
+    GroupObj,
+    TokenVerificationException,
+)
 from pycognito.aws_srp import AWSSRP
 from pycognito.utils import RequestsSrpAuth
 
@@ -494,6 +500,109 @@ class UtilsTestCase(unittest.TestCase):
         access_token_new = srp_auth.cognito_client.access_token
         # Check that the access token was refreshed to a new one
         self.assertNotEqual(access_token_orig, access_token_new)
+
+
+@moto.mock_aws
+class AdminUpdateProfileTestCase(unittest.TestCase):
+    username = "user@test.com"
+    password = "Testing123!"
+
+    def setUp(self) -> None:
+
+        cognito_idp_client = boto3.client("cognito-idp", region_name="us-east-1")
+
+        user_pool = cognito_idp_client.create_user_pool(
+            PoolName="pycognito-test-pool",
+            AliasAttributes=[
+                "email",
+            ],
+            UsernameAttributes=[
+                "email",
+            ],
+        )
+        self.user_pool_id = user_pool["UserPool"]["Id"]
+
+        cognito_idp_client.admin_create_user(
+            UserPoolId=self.user_pool_id,
+            Username=self.username,
+            TemporaryPassword=self.password,
+            MessageAction="SUPPRESS",
+        )
+        cognito_idp_client.admin_set_user_password(
+            UserPoolId=self.user_pool_id,
+            Username=self.username,
+            Password=self.password,
+            Permanent=True,
+        )
+        client_app = cognito_idp_client.create_user_pool_client(
+            UserPoolId=self.user_pool_id,
+            ClientName="test-client",
+            RefreshTokenValidity=1,
+            AccessTokenValidity=1,
+            IdTokenValidity=1,
+            TokenValidityUnits={
+                "AccessToken": "hour",
+                "IdToken": "hour",
+                "RefreshToken": "days",
+            },
+        )
+        self.client_id = client_app["UserPoolClient"]["ClientId"]
+
+    def test_cognito_attr_list(self):
+        assert (
+            is_cognito_attr_list(
+                [{"Name": "given_name", "Value": "John", "Bad_Key": "Test"}]
+            )
+            is False
+        )
+        assert (
+            is_cognito_attr_list(
+                [{"Name": "given_name", "Value": "John"}, {"Bad_Key": "Test"}]
+            )
+            is False
+        )
+        assert (
+            is_cognito_attr_list(
+                [
+                    {"Name": "given_name", "Value": "John"},
+                    {"Name": "middle_name", "Value": "Smith"},
+                ]
+            )
+            is True
+        )
+
+    def test_user_admin_update_profile(self):
+        cognito = Cognito(
+            user_pool_id=self.user_pool_id,
+            username=self.username,
+            client_id=self.client_id,
+        )
+        cognito.authenticate(self.password)
+
+        # verify attr dict from cognito_to_dict and dict_to_cognito works as expected
+        cognito.admin_update_profile(attrs={"given_name": "John"})
+        assert cognito.get_user().given_name == "John"
+
+        # verify attr_map works as expected
+        cognito.admin_update_profile(
+            attrs={"gn": "Steve"}, attr_map={"given_name": "gn"}
+        )
+        assert cognito.get_user().given_name == "Steve"
+
+        # verify that cognito formatted list works as expected
+        cognito.admin_update_profile(
+            attrs=[{"Name": "given_name", "Value": "Bob"}], username=self.username
+        )
+        assert cognito.get_user().given_name == "Bob"
+
+        # is_cognito_attr_list returns False so dict_to_cognito is called which will fail on this bad list input
+        try:
+            cognito.admin_update_profile(
+                attrs=[{"Name": "given_name", "Value": "John", "Bad_Key": "Test"}],
+                username=self.username,
+            )
+        except AttributeError as err:
+            self.assertEqual(str(err), "'list' object has no attribute 'items'")
 
 
 if __name__ == "__main__":
