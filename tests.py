@@ -496,5 +496,62 @@ class UtilsTestCase(unittest.TestCase):
         self.assertNotEqual(access_token_orig, access_token_new)
 
 
+@moto.mock_aws
+class CognitoUserPoolClientTestCase(unittest.TestCase):
+    client_name = "test-client"
+
+    def setUp(self) -> None:
+
+        self.cognito_idp = boto3.client("cognito-idp", region_name="us-east-1")
+
+        user_pool = self.cognito_idp.create_user_pool(
+            PoolName="pycognito-test-pool",
+            AliasAttributes=[
+                "email",
+            ],
+            UsernameAttributes=[
+                "email",
+            ],
+        )
+        self.user_pool_id = user_pool["UserPool"]["Id"]
+
+        self.params = {
+            "RefreshTokenValidity": 1,
+            "AccessTokenValidity": 1,
+            "IdTokenValidity": 1,
+            "TokenValidityUnits": {
+                "AccessToken": "hour",
+                "IdToken": "hour",
+                "RefreshToken": "days",
+            },
+        }
+
+    def test_create_user_pool_client(self):
+        cognito = Cognito(user_pool_id=self.user_pool_id, client_id=None)
+        response = cognito.create_user_pool_client(
+            client_name=self.client_name, **self.params
+        )
+
+        self.assertEqual(response["ClientName"], self.client_name)
+        self.assertEqual(response["AccessTokenValidity"], 1)
+
+    def test_describe_user_pool_client(self):
+        params = self.params.copy()
+        params.update({"UserPoolId": self.user_pool_id})
+        params.update({"ClientName": self.client_name})
+
+        response = self.cognito_idp.create_user_pool_client(**params)
+
+        client_id = response["UserPoolClient"]["ClientId"]
+        cognito = Cognito(user_pool_id=self.user_pool_id, client_id=client_id)
+        response = cognito.describe_user_pool_client(
+            pool_id=self.user_pool_id, client_id=client_id
+        )
+
+        self.assertEqual(response["UserPoolId"], self.user_pool_id)
+        self.assertEqual(response["ClientId"], client_id)
+        self.assertEqual(response["ClientName"], self.client_name)
+
+
 if __name__ == "__main__":
     unittest.main()
