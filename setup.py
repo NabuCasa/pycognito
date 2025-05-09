@@ -11,7 +11,6 @@ setup(
     long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
     classifiers=[
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
@@ -33,6 +32,6 @@ setup(
         "requests>=2.22.0",
     ],
     include_package_data=True,
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     zip_safe=True,
 )
