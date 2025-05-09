@@ -1,6 +1,6 @@
 {
   "name": "pycognito dev",
-  "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.8",
+  "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.9",
   "postStartCommand": "python3 -m pip install -e .",
   "postCreateCommand": "python3 -m pip install -r requirements_test.txt tox",
   "containerUser": "vscode",
