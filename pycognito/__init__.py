@@ -26,6 +26,21 @@ def cognito_to_dict(attr_list, attr_map=None):
     return attr_dict
 
 
+def is_cognito_attr_list(attr_list):
+    """
+    :param attr_list: List of User Pool attribute dicts
+    :return: bool indicating whether the list contains User Pool attribute dicts
+    """
+    if not isinstance(attr_list, list):
+        return False
+    for attr_dict in attr_list:
+        if not isinstance(attr_dict, dict):
+            return False
+        if not attr_dict.keys() <= {"Name", "Value"}:
+            return False
+    return True
+
+
 def dict_to_cognito(attributes, attr_map=None):
     """
     :param attributes: Dictionary of User Pool attribute names/values
@@ -534,11 +549,26 @@ class Cognito:
         self.access_token = None
         self.token_type = None
 
-    def admin_update_profile(self, attrs, attr_map=None):
-        user_attrs = dict_to_cognito(attrs, attr_map)
+    def admin_update_profile(self, attrs, attr_map=None, username=None):
+        """
+        Updates the user specified (defaults to self.username) with the provided attrs
+        :param attrs: Dictionary of attribute name, values
+        :param attr_map: Dictionary map from Cognito attributes to attribute
+        :param username: Username to update
+        :return:
+        """
+        if username is None:
+            username = self.username
+
+        # if already formatted for cognito then use as is
+        if not is_cognito_attr_list(attrs):
+            user_attrs = dict_to_cognito(attrs, attr_map)
+        else:
+            user_attrs = attrs
+
         self.client.admin_update_user_attributes(
             UserPoolId=self.user_pool_id,
-            Username=self.username,
+            Username=username,
             UserAttributes=user_attrs,
         )
 
