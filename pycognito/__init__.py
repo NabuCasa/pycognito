@@ -146,7 +146,7 @@ class Cognito:
     def __init__(
         self,
         user_pool_id,
-        client_id,
+        client_id=None,
         user_pool_region=None,
         username=None,
         id_token=None,
