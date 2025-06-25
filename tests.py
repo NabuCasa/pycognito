@@ -496,5 +496,137 @@ class UtilsTestCase(unittest.TestCase):
         self.assertNotEqual(access_token_orig, access_token_new)
 
 
+@moto.mock_aws
+class PaginationTestCase(unittest.TestCase):
+    invalid_user_pool_id = "us-east-1_123456789"
+
+    def setUp(self) -> None:
+
+        cognito_idp_client = boto3.client("cognito-idp", region_name="us-east-1")
+
+        user_pool = cognito_idp_client.create_user_pool(
+            PoolName="pycognito-test-pool",
+            AliasAttributes=[
+                "email",
+            ],
+            UsernameAttributes=[
+                "email",
+            ],
+        )
+        self.user_pool_id = user_pool["UserPool"]["Id"]
+
+        # create users, groups, and clients to test pagination
+        for i in range(2):
+            cognito_idp_client.admin_create_user(
+                UserPoolId=self.user_pool_id,
+                Username=f"user{i}@test.com",
+                TemporaryPassword="Testing123!",
+                MessageAction="SUPPRESS",
+            )
+
+            cognito_idp_client.create_group(
+                GroupName=f"group-{i}", UserPoolId=self.user_pool_id
+            )
+
+            cognito_idp_client.create_user_pool_client(
+                UserPoolId=self.user_pool_id,
+                ClientName=f"test-client-{i}",
+                RefreshTokenValidity=1,
+                AccessTokenValidity=1,
+                IdTokenValidity=1,
+                TokenValidityUnits={
+                    "AccessToken": "hour",
+                    "IdToken": "hour",
+                    "RefreshToken": "days",
+                },
+            )
+
+    def test_user_pagination(self):
+        cognito = Cognito(user_pool_id=self.user_pool_id)
+
+        # retrieve the first user
+        user_one = cognito.get_users(pool_id=self.user_pool_id, page_limit=1)
+        self.assertEqual(len(user_one), 1)
+
+        # verify a page token exists for the next request
+        page_token = cognito.get_users_pagination_token()
+        self.assertTrue(page_token is not None)
+
+        # retrieve the second user
+        user_two = cognito.get_users(page_limit=1, page_token=page_token)
+        self.assertEqual(len(user_two), 1)
+
+        # verify page token doesn't exist since users are exhausted
+        page_token = cognito.get_users_pagination_token()
+        self.assertTrue(page_token is None)
+
+        # verify we can retrieve all users via pagination if no limits specified
+        all_users = cognito.get_users()
+        self.assertEqual(len(all_users), 2)
+
+        # test that a different user pool id can be specified for the request
+        cognito.user_pool_id = self.invalid_user_pool_id
+        users = cognito.get_users(pool_id=self.user_pool_id)
+        self.assertEqual(len(users), 2)
+
+    def test_group_pagination(self):
+        cognito = Cognito(user_pool_id=self.user_pool_id)
+
+        # retrieve the first group
+        group_one = cognito.get_groups(pool_id=self.user_pool_id, page_limit=1)
+        self.assertEqual(len(group_one), 1)
+
+        # verify a page token exists for the next request
+        page_token = cognito.get_groups_pagination_token()
+        self.assertTrue(page_token is not None)
+
+        # retrieve the second group
+        group_two = cognito.get_groups(page_limit=1, page_token=page_token)
+        self.assertEqual(len(group_two), 1)
+
+        # verify page token doesn't exist since groups are exhausted
+        page_token = cognito.get_groups_pagination_token()
+        self.assertTrue(page_token is None)
+
+        # verify we can retrieve all groups via pagination if no limits specified
+        all_groups = cognito.get_groups()
+        self.assertEqual(len(all_groups), 2)
+
+        # test that a different user pool id can be specified for the request
+        cognito.user_pool_id = self.invalid_user_pool_id
+        groups = cognito.get_groups(pool_id=self.user_pool_id)
+        self.assertEqual(len(groups), 2)
+
+    def test_client_pagination(self):
+        cognito = Cognito(user_pool_id=self.user_pool_id)
+
+        # retrieve the first client
+        client_one = cognito.list_user_pool_clients(
+            pool_id=self.user_pool_id, page_limit=1
+        )
+        self.assertEqual(len(client_one), 1)
+
+        # verify a page token exists for the next request
+        page_token = cognito.get_clients_pagination_token()
+        self.assertTrue(page_token is not None)
+
+        # retrieve the second client
+        client_two = cognito.list_user_pool_clients(page_limit=1, page_token=page_token)
+        self.assertEqual(len(client_two), 1)
+
+        # verify page token doesn't exist since clients are exhausted
+        page_token = cognito.get_clients_pagination_token()
+        self.assertTrue(page_token is None)
+
+        # verify we can retrieve all clients via pagination if no limits specified
+        all_clients = cognito.list_user_pool_clients()
+        self.assertEqual(len(all_clients), 2)
+
+        # test that a different user pool id can be specified for the request
+        cognito.user_pool_id = self.invalid_user_pool_id
+        clients = cognito.list_user_pool_clients(pool_id=self.user_pool_id)
+        self.assertEqual(len(clients), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

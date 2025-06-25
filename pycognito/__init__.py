@@ -208,12 +208,37 @@ class Cognito:
         else:
             self.client = boto3.client("cognito-idp", **boto3_client_kwargs)
 
+        self._users_pagination_next_token = None
+        self._groups_pagination_next_token = None
+        self._clients_pagination_next_token = None
+
     @property
     def user_pool_url(self):
         if self.pool_domain_url:
             return f"{self.pool_domain_url}/{self.user_pool_id}"
 
         return f"https://cognito-idp.{self.user_pool_region}.amazonaws.com/{self.user_pool_id}"
+
+    def get_users_pagination_token(self) -> str | None:
+        """
+        Returns the pagination token set by the get_users call
+        :return: str token or None if no more results to request
+        """
+        return self._users_pagination_next_token
+
+    def get_groups_pagination_token(self) -> str | None:
+        """
+        Returns the pagination token set by the get_group call
+        :return: str token or None if no more results to request
+        """
+        return self._groups_pagination_next_token
+
+    def get_clients_pagination_token(self) -> str | None:
+        """
+        Returns the pagination token set by the list_user_pool_clients call
+        :return: str token or None if no more results to request
+        """
+        return self._clients_pagination_next_token
 
     def get_keys(self):
         if self.pool_jwk:
@@ -577,25 +602,46 @@ class Cognito:
             attr_map=attr_map,
         )
 
-    def get_users(self, attr_map=None):
+    def get_users(
+        self,
+        attr_map=None,
+        pool_id: str | None = None,
+        page_limit: int | None = None,
+        page_token: str | None = None,
+    ) -> list[UserObj]:
         """
         Returns all users for a user pool. Returns instances of the
-        self.user_class.
+        self.user_class. If page_limit is set then it will return that many (0 to 60)
+        while setting self._users_pagination_next_token to the next token.
         :param attr_map: Dictionary map from Cognito attributes to attribute
         names we would like to show to our users
+        :param pool_id: The user pool ID to list clients for (uses self.user_pool_id if None)
+        :param page_limit: Max results to return from this request (0 to 60)
+        :param page_token: Used to return the next set of items
         :return: list of self.user_class
         """
-        response = self.client.list_users(UserPoolId=self.user_pool_id)
+        if pool_id is None:
+            pool_id = self.user_pool_id
+
+        kwargs = {"UserPoolId": pool_id}
+        if page_limit:
+            kwargs["Limit"] = page_limit
+        if page_token:
+            kwargs["PaginationToken"] = page_token
+
+        response = self.client.list_users(**kwargs)
         user_list = response.get("Users")
         page_token = response.get("PaginationToken")
 
-        while page_token:
-            response = self.client.list_users(
-                UserPoolId=self.user_pool_id, PaginationToken=page_token
-            )
-            user_list.extend(response.get("Users"))
-            page_token = response.get("PaginationToken")
-
+        if page_limit is None:
+            while page_token:
+                response = self.client.list_users(
+                    UserPoolId=pool_id, PaginationToken=page_token
+                )
+                user_list.extend(response.get("Users"))
+                page_token = response.get("PaginationToken")
+        else:
+            self._users_pagination_next_token = page_token
         return [
             self.get_user_obj(
                 user.get("Username"),
@@ -805,13 +851,45 @@ class Cognito:
         )
         return self.get_group_obj(response.get("Group"))
 
-    def get_groups(self):
+    def get_groups(
+        self,
+        pool_id: str | None = None,
+        page_limit: int | None = None,
+        page_token: str | None = None,
+    ) -> list[GroupObj]:
         """
-        Returns all groups for a user pool.
+        Returns all groups for a user pool. If page_limit is set then it
+        will return that many (0 to 60) while setting self._groups_pagination_next_token
+        to the next token.
+        :param pool_id: The user pool ID to list clients for (uses self.user_pool_id if None)
+        :param page_limit: Max results to return from this request (0 to 60)
+        :param page_token: Used to return the next set of items
         :return: list of instances of self.group_class
         """
-        response = self.client.list_groups(UserPoolId=self.user_pool_id)
-        return [self.get_group_obj(group_data) for group_data in response.get("Groups")]
+        if pool_id is None:
+            pool_id = self.user_pool_id
+
+        kwargs = {"UserPoolId": pool_id}
+        if page_limit:
+            kwargs["Limit"] = page_limit
+        if page_token:
+            kwargs["NextToken"] = page_token
+
+        response = self.client.list_groups(**kwargs)
+        group_list = response.get("Groups")
+        page_token = response.get("NextToken")
+
+        if page_limit is None:
+            while page_token:
+                response = self.client.list_groups(
+                    UserPoolId=pool_id, NextToken=page_token
+                )
+                group_list.extend(response.get("Groups"))
+                page_token = response.get("PaginationToken")
+        else:
+            self._groups_pagination_next_token = page_token
+
+        return [self.get_group_obj(group_data) for group_data in group_list]
 
     def admin_add_user_to_group(self, username, group_name):
         """
@@ -933,6 +1011,46 @@ class Cognito:
             ProviderName=provider_name,
             **kwargs,
         )
+
+    def list_user_pool_clients(
+        self,
+        pool_id: str | None = None,
+        page_limit: int | None = None,
+        page_token: str | None = None,
+    ) -> list[dict]:
+        """
+        Returns configuration information of a user pool's clients. If page limit is set
+        then it will return that many (0 to 60) while setting self._clients_pagination_next_token
+        to the next token.
+        :param pool_id: The user pool ID to list clients for (uses self.user_pool_id if None)
+        :param page_limit: Max results to return from this request (0 to 60)
+        :param page_token: Used to return the next set of items
+        :return: List of client dicts of the specified user pool
+        """
+        if pool_id is None:
+            pool_id = self.user_pool_id
+
+        kwargs = {"UserPoolId": pool_id}
+        if page_limit:
+            kwargs["MaxResults"] = page_limit
+        if page_token:
+            kwargs["NextToken"] = page_token
+
+        response = self.client.list_user_pool_clients(**kwargs)
+        client_list = response.get("UserPoolClients")
+        page_token = response.get("NextToken")
+
+        if page_limit is None:
+            while page_token:
+                response = self.client.list_user_pool_clients(
+                    UserPoolId=pool_id, PaginationToken=page_token
+                )
+                client_list.extend(response.get("UserPoolClients"))
+                page_token = response.get("NextToken")
+        else:
+            self._clients_pagination_next_token = page_token
+
+        return client_list
 
     def describe_user_pool_client(self, pool_id: str, client_id: str):
         """

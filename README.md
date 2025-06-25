@@ -99,9 +99,9 @@ u = Cognito('your-user-pool-id','your-client-id',
 
 ### Examples with Realistic Arguments
 
-#### User Pool Id and Client ID Only
+#### User Pool Id
 
-Used when you only need information about the user pool (ex. list users in the user pool)
+Used when you only need information about the user pool's clients, groups, or users (ex. list users in the user pool). Client ID can be optionally specified.
 
 ```python
 from pycognito import Cognito
@@ -367,19 +367,37 @@ user = u.get_user(attr_map={"given_name":"first_name","family_name":"last_name"}
 
 #### Get Users
 
-Get a list of the user in the user pool.
+Get a list of the users in the user pool.
 
 ```python
 from pycognito import Cognito
 
-u = Cognito('your-user-pool-id','your-client-id')
+u = Cognito('your-user-pool-id', 'your-client-id')
 
 user = u.get_users(attr_map={"given_name":"first_name","family_name":"last_name"})
+```
+
+You can paginate through retrieving users by specifying the page_limit and page_token arguments.
+
+```python
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id', 'your-client-id')
+
+users = u.get_users(page_limit=10)
+page_token = u.get_users_pagination_token()
+while page_token:
+    more_users = u.get_users(page_limit=10, page_token=page_token)
+    users.extend(more_users)
+    page_token = u.get_users_pagination_token()
 ```
 
 ##### Arguments
 
 - **attr_map:** Dictionary map from Cognito attributes to attribute names we would like to show to our users
+- **pool_id:** The user pool ID to list clients for (uses self.user_pool_id if None)
+- **page_limit:** Max results to return from this request (0 to 60)
+- **page_token:** Used to return the next set of items
 
 #### Get Group object
 
@@ -417,15 +435,69 @@ group = u.get_group(group_name='some_group_name')
 
 #### Get Groups
 
-Get a list of groups in the user pool. Requires developer credentials.
+Get a list of groups in the specified user pool (defaults to user pool set on instantiation if not specified). Requires developer credentials.
 
 ```python
 from pycognito import Cognito
 
-u = Cognito('your-user-pool-id','your-client-id')
+u = Cognito('your-user-pool-id', 'your-client-id')
 
 groups = u.get_groups()
 ```
+
+You can paginate through retrieving groups by specifying the page_limit and page_token arguments.
+
+```python
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id', 'your-client-id')
+
+groups = u.get_groups(page_limit=10)
+page_token = u.get_groups_pagination_token()
+while page_token:
+    more_groups = u.get_groups(page_limit=10, page_token=page_token)
+    groups.extend(more_groups)
+    page_token = u.get_groups_pagination_token()
+```
+
+##### Arguments
+
+- **pool_id:** The user pool ID to list groups for (uses self.user_pool_id if None)
+- **page_limit:** Max results to return from this request (0 to 60)
+- **page_token:** Used to return the next set of items
+
+#### List User Pool Clients
+
+Returns a list of client dicts of the specified user pool (defaults to user pool set on instantiation if not specified). Requires developer credentials.
+
+```python
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id', 'your-client-id')
+
+clients = u.list_user_pool_clients()
+```
+
+You can paginate through retrieving clients by specifying the page_limit and page_token arguments.
+
+```python
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id', 'your-client-id')
+
+clients = u.list_user_pool_clients(page_limit=10)
+page_token = u.get_clients_pagination_token()
+while page_token:
+    more_clients = u.list_user_pool_clients(page_limit=10, page_token=page_token)
+    clients.extend(more_clients)
+    page_token = u.get_clients_pagination_token()
+```
+
+##### Arguments
+
+- **pool_id:** The user pool ID to list clients for (uses self.user_pool_id if None)
+- **page_limit:** Max results to return from this request (0 to 60)
+- **page_token:** Used to return the next set of items
 
 #### Check Token
 
