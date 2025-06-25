@@ -233,7 +233,10 @@ class Cognito:
     def get_key(self, kid):
         keys = self.get_keys().get("keys")
         key = list(filter(lambda x: x.get("kid") == kid, keys))
-        return key[0]
+        if len(key) > 0:
+            return key[0]
+        else:
+            return None
 
     def verify_tokens(self):
         """
@@ -249,7 +252,12 @@ class Cognito:
         # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
 
         kid = jwt.get_unverified_header(token).get("kid")
-        hmac_key = jwt.api_jwk.PyJWK(self.get_key(kid)).key
+        key = self.get_key(kid)
+        if key is None:
+            raise TokenVerificationException(
+                f"Your {id_name!r} token could not be verified (key with ID {kid} not found)."
+            )
+        hmac_key = jwt.api_jwk.PyJWK(key).key
         required_claims = (["aud"] if token_use != "access" else []) + ["iss", "exp"]
         try:
             decoded = jwt.api_jwt.decode_complete(
