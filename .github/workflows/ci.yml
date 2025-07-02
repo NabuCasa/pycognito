@@ -9,9 +9,28 @@ on:
       - master
 
 jobs:
-  tox:
+  lint:
     runs-on: ubuntu-latest
-    name: Tox
+    name: Lint
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.9"
+          cache: 'pip'
+
+      - name: Install requirements
+        run: python3 -m pip install .[lint]
+
+      - name: Run linters
+        run: ./scripts/lint
+
+  test:
+    runs-on: ubuntu-latest
+    name: Test with Python ${{ matrix.python-version }}
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
@@ -28,12 +47,16 @@ jobs:
         uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
 
-      - name: Install tox
-        run: python3 -m pip install tox
+      - name: Install requirements
+        run: python3 -m pip install .[test]
 
-      - name: Run Tox
-        run: tox
+      - name: Run tests
+        run: ./scripts/test
 
   build:
     runs-on: ubuntu-latest

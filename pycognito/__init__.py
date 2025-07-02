@@ -139,7 +139,6 @@ class GroupObj:
 
 
 class Cognito:
-
     user_class = UserObj
     group_class = GroupObj
 
