@@ -147,7 +147,6 @@ def generate_hash_device(device_group_key, device_key):
 
 
 class AWSSRP:
-
     SMS_MFA_CHALLENGE = "SMS_MFA"
     SOFTWARE_TOKEN_MFA_CHALLENGE = "SOFTWARE_TOKEN_MFA"
     NEW_PASSWORD_REQUIRED_CHALLENGE = "NEW_PASSWORD_REQUIRED"

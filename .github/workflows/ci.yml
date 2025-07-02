@@ -9,9 +9,35 @@ on:
       - master
 
 jobs:
-  tox:
+  lint:
     runs-on: ubuntu-latest
-    name: Tox
+    name: Lint
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: requirements_test.txt
+
+      - name: Install requirements
+        run: python3 -m pip install -r requirements_lint.txt
+
+      - name: Run linters
+        run: ./scripts/lint
+
+      - name: Run pylint
+        run: pylint --rcfile pylintrc pycognito
+
+      - name: Run black
+        run: black --target-version py36 --check pycognito tests.py setup.py
+
+  test:
+    runs-on: ubuntu-latest
+    name: Test with Python ${{ matrix.python-version }}
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
@@ -28,9 +54,11 @@ jobs:
         uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: requirements_test.txt
 
-      - name: Install tox
-        run: python3 -m pip install tox
+      - name: Install requirements
+        run: python3 -m pip install -r requirements_test.txt
 
-      - name: Run Tox
-        run: tox
+      - name: Run tests
+        run: ./scripts/test
