@@ -28,16 +28,17 @@ dependencies = [
 
 [project.optional-dependencies]
 lint = [
+    "black==24.4.2",
+    "flake8==7.0.0",
+    "pylint==3.1.1"
+]
+test = [
+
     "coverage==7.5.3",
     "pytest==8.3.5",
     "moto[cognitoidp]==5.0.13",
     "requests-mock==1.12.1",
     "freezegun==1.5.2"
-]
-test = [
-    "black==24.4.2",
-    "flake8==7.0.0",
-    "pylint==3.1.1"
 ]
 
 [project.urls]
