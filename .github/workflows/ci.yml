@@ -25,7 +25,7 @@ jobs:
             requirements_test.txt
 
       - name: Install requirements
-        run: python3 -m pip install -r requirements_lint.txt
+        run: python3 -m pip install -r requirements.txt -r requirements_lint.txt
 
       - name: Run linters
         run: ./scripts/lint
@@ -62,7 +62,7 @@ jobs:
             requirements_test.txt
 
       - name: Install requirements
-        run: python3 -m pip install -r requirements_test.txt
+        run: python3 -m pip install -r requirements.txt -r requirements_test.txt
 
       - name: Run tests
         run: ./scripts/test
