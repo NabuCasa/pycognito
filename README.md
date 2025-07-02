@@ -707,7 +707,7 @@ The method returns two values, `response` and `device_password`. `device_passwor
 the Cognito user pool.
 
 ```python
-response, device_password = user.confirm_device(tokens=tokens)
+response, device_password = aws.confirm_device(tokens=tokens)
 ```
 
 ### Updating Device Status
@@ -718,7 +718,7 @@ three inputs, `is_remembered`, `access_token` and `device_key`. `is_remembered` 
 provided by the `authenticate_user` method.
 
 ```python
-response = user.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
+response = aws.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
 ```
 
 ### Authenticating your Device
