@@ -1,5 +1,0 @@
-coverage==7.5.3
-pytest==8.3.5
-moto[cognitoidp]==5.0.13
-requests-mock==1.12.1
-freezegun==1.5.2

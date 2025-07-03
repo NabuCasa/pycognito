@@ -4,4 +4,4 @@ cd "$(dirname "$0")/.."
 
 flake8 pycognito tests.py
 pylint --rcfile pylintrc pycognito
-black --target-version py36 --check pycognito tests.py setup.py
+black --target-version py36 --check pycognito tests.py
