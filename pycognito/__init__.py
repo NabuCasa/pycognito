@@ -249,7 +249,9 @@ class Cognito:
     def verify_token(self, token, id_name, token_use):
         # https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
 
-        if (kid := jwt.get_unverified_header(token).get("kid")) is None:
+        unverified_header = jwt.get_unverified_header(token)
+
+        if (kid := unverified_header.get("kid")) is None:
             raise TokenVerificationException(
                 f"Your {id_name!r} token could not be verified (kid not found in header)."
             )

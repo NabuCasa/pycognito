@@ -95,12 +95,10 @@ class VerifyTokenTestCase(unittest.TestCase):
 
         return f"{encoded_header}.{encoded_payload}.{fake_signature}"
 
-    @patch("pycognito.Cognito.get_key")
     @patch("jwt.get_unverified_header")
-    def test_verify_token_missing_kid(self, mock_get_header, mock_get_key):
+    def test_verify_token_missing_kid(self, mock_get_header):
         """Test verification fails when kid is missing from token header"""
         mock_get_header.return_value = {}
-        mock_get_key.return_value = None
 
         token = "fake.token.here"
 
