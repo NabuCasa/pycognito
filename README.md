@@ -45,7 +45,6 @@ Makes working with AWS Cognito easier for Python developers.
 
 ## Python Versions Supported
 
-- 3.8
 - 3.9
 - 3.10
 - 3.11
@@ -76,7 +75,7 @@ COGNITO_JWKS={"keys": [{"alg": "RS256","e": "AQAB","kid": "123456789ABCDEFGHIJKL
 from pycognito import Cognito
 
 u = Cognito('your-user-pool-id','your-client-id',
-    client_secret='optional-client-secret'
+    client_secret='optional-client-secret',
     username='optional-username',
     id_token='optional-id-token',
     refresh_token='optional-refresh-token',
@@ -700,6 +699,7 @@ tokens = aws.authenticate_user()
 device_key = tokens["AuthenticationResult"]["NewDeviceMetadata"]["DeviceKey"]
 device_group_key = tokens["AuthenticationResult"]["NewDeviceMetadata"]["DeviceGroupKey"]
 ```
+
 ### Confirming a Device
 
 The `confirm_device` class method is used for confirming a device, it takes two inputs, `tokens` and `DeviceName` (`DeviceName` is optional).
@@ -707,18 +707,18 @@ The method returns two values, `response` and `device_password`. `device_passwor
 the Cognito user pool.
 
 ```python
-response, device_password = user.confirm_device(tokens=tokens)
+response, device_password = aws.confirm_device(tokens=tokens)
 ```
 
 ### Updating Device Status
 
 The `update_device_status` class method is used to update whether or not your device should be remembered. This method takes
-three inputs, `is_remembered`, `access_token` and `device_key`. `is_remembered` is a boolean value, which sets the device status as 
-`"remembered"` on `True` and `"not_remembered"` on `False`, `access_token` is the Access Token provided by Cognito and `device_key` is the key 
+three inputs, `is_remembered`, `access_token` and `device_key`. `is_remembered` is a boolean value, which sets the device status as
+`"remembered"` on `True` and `"not_remembered"` on `False`, `access_token` is the Access Token provided by Cognito and `device_key` is the key
 provided by the `authenticate_user` method.
 
 ```python
-response = user.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
+response = aws.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
 ```
 
 ### Authenticating your Device
@@ -731,10 +731,11 @@ from pycognito.aws_srp import AWSSRP
 
 client = boto3.client('cognito-idp')
 aws = AWSSRP(username='username', password='password', pool_id='user_pool_id',
-             client_id='client_id', client=client, device_key="device_key", 
+             client_id='client_id', client=client, device_key="device_key",
              device_group_key="device_group_key", device_password="device_password")
 tokens = aws.authenticate_user()
 ```
+
 ### Forget Device
 
 To forget device, you can call the `forget_device` class method. It takes `access_token` and `device_key` as input.

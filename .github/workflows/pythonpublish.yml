@@ -11,10 +11,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.1.5
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.0
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.x"
 
@@ -28,7 +28,7 @@ jobs:
           python -m build
 
       - name: Upload dists
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: "dist"
           path: "dist/"
@@ -46,11 +46,11 @@ jobs:
       id-token: write
     steps:
     - name: Download dists
-      uses: actions/download-artifact@v4.1.7
+      uses: actions/download-artifact@v4.3.0
       with:
         name: "dist"
         path: "dist/"
 
     - name: Publish dists to PyPI
       # Pinned to a commit for security purposes
-      uses: pypa/gh-action-pypi-publish@81e9d935c883d0b210363ab89cf05f3894778450 # v1.8.14
+      uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
