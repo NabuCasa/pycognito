@@ -3,6 +3,9 @@ import unittest
 import os.path
 from unittest.mock import patch
 import uuid
+import json
+import base64
+import time
 
 import freezegun
 import moto
@@ -38,6 +41,90 @@ def _mock_verify_tokens(self, token, id_name, token_use):
     if "wrong" in token:
         raise TokenVerificationException
     setattr(self, id_name, token)
+
+
+class VerifyTokenTestCase(unittest.TestCase):
+    """Test cases specifically for the verify_token method"""
+
+    def setUp(self):
+        self.cognito_user_pool_id = "us-east-1_123456789"
+        self.app_id = "test_client_id"
+        self.username = "testuser"
+
+        self.user = Cognito(
+            user_pool_id=self.cognito_user_pool_id,
+            client_id=self.app_id,
+            username=self.username,
+        )
+
+        self.mock_jwk_key = {
+            "kty": "RSA",
+            "use": "sig",
+            "kid": "test_key_id",
+            "n": "some_modulus",
+            "e": "AQAB",
+        }
+
+        self.current_time = int(time.time())
+        self.future_time = self.current_time + 3600
+
+    def create_test_token(self, token_use="access", kid="test_key_id"):
+        """Helper method to create test JWT tokens"""
+        header = {"alg": "RS256", "kid": kid}
+
+        payload = {
+            "iss": f"https://cognito-idp.us-east-1.amazonaws.com/{self.cognito_user_pool_id}",
+            "exp": self.future_time,
+            "token_use": token_use,
+            "iat": self.current_time,
+        }
+
+        if token_use != "access":
+            payload["aud"] = self.app_id
+
+        encoded_header = (
+            base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        )
+        encoded_payload = (
+            base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        )
+        fake_signature = (
+            base64.urlsafe_b64encode(b"fake_signature").decode().rstrip("=")
+        )
+
+        return f"{encoded_header}.{encoded_payload}.{fake_signature}"
+
+    @patch("pycognito.Cognito.get_key")
+    @patch("jwt.get_unverified_header")
+    def test_verify_token_missing_kid(self, mock_get_header, mock_get_key):
+        """Test verification fails when kid is missing from token header"""
+        mock_get_header.return_value = {}
+        mock_get_key.return_value = None
+
+        token = "fake.token.here"
+
+        with self.assertRaises(TokenVerificationException):
+            self.user.verify_token(token, "access_token", "access")
+
+    def test_verify_token_unknown_kid(self):
+        """Test verification fails when kid is not found in the JWK set"""
+        mock_jwks = {
+            "keys": [
+                {
+                    "kty": "RSA",
+                    "use": "sig",
+                    "kid": "different_key_id",
+                    "n": "some_modulus",
+                    "e": "AQAB",
+                }
+            ]
+        }
+
+        token = self.create_test_token(kid="unknown_key_id")
+
+        with patch.object(self.user, "get_keys", return_value=mock_jwks):
+            with self.assertRaises(TokenVerificationException):
+                self.user.verify_token(token, "access_token", "access")
 
 
 class UserObjTestCase(unittest.TestCase):
