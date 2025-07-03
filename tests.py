@@ -1,4 +1,5 @@
 import datetime
+import re
 import unittest
 import os.path
 from unittest.mock import patch
@@ -103,7 +104,12 @@ class VerifyTokenTestCase(unittest.TestCase):
 
         token = "fake.token.here"
 
-        with self.assertRaises(TokenVerificationException):
+        with self.assertRaisesRegex(
+            TokenVerificationException,
+            re.escape(
+                "Your 'access_token' token could not be verified (kid not found in header)."
+            ),
+        ):
             self.user.verify_token(token, "access_token", "access")
 
     def test_verify_token_unknown_kid(self):
@@ -123,7 +129,12 @@ class VerifyTokenTestCase(unittest.TestCase):
         token = self.create_test_token(kid="unknown_key_id")
 
         with patch.object(self.user, "get_keys", return_value=mock_jwks):
-            with self.assertRaises(TokenVerificationException):
+            with self.assertRaisesRegex(
+                TokenVerificationException,
+                re.escape(
+                    "Your 'access_token' token could not be verified (key with ID unknown_key_id not found)."
+                ),
+            ):
                 self.user.verify_token(token, "access_token", "access")
 
 
