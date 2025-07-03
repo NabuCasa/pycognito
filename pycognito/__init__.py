@@ -234,8 +234,7 @@ class Cognito:
         key = list(filter(lambda x: x.get("kid") == kid, keys))
         if len(key) > 0:
             return key[0]
-        else:
-            return None
+        return None
 
     def verify_tokens(self):
         """
