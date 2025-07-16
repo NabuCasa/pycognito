@@ -527,7 +527,10 @@ class Cognito:
         # only need to confirm the device if it is not already confirmed
         # if a user has saved these values and provided them, we don't need to confirm again
         # this can be determined by existence of self.device_key but no NewDeviceMetadata
-        if self.device_key is not None and "NewDeviceMetadata" in tokens["AuthenticationResult"]:
+        if (
+            self.device_key is not None
+            and "NewDeviceMetadata" in tokens["AuthenticationResult"]
+        ):
             _, self.device_password = aws.confirm_device(
                 tokens=tokens, device_name=self.device_name
             )
