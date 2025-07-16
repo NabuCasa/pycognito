@@ -46,6 +46,10 @@ class RequestsSrpAuth(requests.auth.AuthBase):
         http_header_prefix: str = "Bearer ",
         auth_token_type: TokenType = TokenType.ACCESS_TOKEN,
         boto3_client_kwargs=None,
+        device_key: str = None,
+        device_group_key: str = None,
+        device_password: str = None,
+        device_name: str = None,
     ):
         """
 
@@ -59,6 +63,10 @@ class RequestsSrpAuth(requests.auth.AuthBase):
         :param http_header_prefix: Prefix a value before the token. Defaults to "Bearer ". (Note the space)
         :param auth_token_type: Whether to populate the header with ID or ACCESS_TOKEN. Defaults to "ACCESS_TOKEN"
         :param boto3_client_kwargs: Keyword args to pass to Boto3 for client creation
+        :param device_key: Device Key for the user
+        :param device_group_key: Device Group Key for the user
+        :param device_password: Device Password for the user
+        :param device_name: Device Name for the user
         """
 
         if cognito:
@@ -70,6 +78,10 @@ class RequestsSrpAuth(requests.auth.AuthBase):
                 user_pool_region=user_pool_region,
                 username=username,
                 boto3_client_kwargs=boto3_client_kwargs,
+                device_key=device_key,
+                device_group_key=device_group_key,
+                device_password=device_password,
+                device_name=device_name,
             )
 
         self.username = username
