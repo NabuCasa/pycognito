@@ -157,6 +157,10 @@ class Cognito:
         session=None,
         botocore_config=None,
         boto3_client_kwargs=None,
+        device_key=None,
+        device_group_key=None,
+        device_password=None,
+        device_name=None,
     ):
         """
         :param user_pool_id: Cognito User Pool ID
@@ -170,6 +174,10 @@ class Cognito:
         :param session: Boto3 client session
         :param botocore_config: Botocore Config object for the client
         :param boto3_client_kwargs: Keyword args to pass to Boto3 for client creation
+        :param device_key: Device Key for the user
+        :param device_group_key: Device Group Key for the user
+        :param device_password: Device Password for the user
+        :param device_name: Device Name for the user
         """
 
         self.user_pool_id = user_pool_id
@@ -189,6 +197,10 @@ class Cognito:
         self.base_attributes = None
         self.pool_jwk = None
         self.mfa_tokens = None
+        self.device_key = device_key
+        self.device_group_key = device_group_key
+        self.device_password = device_password
+        self.device_name = device_name
 
         if not boto3_client_kwargs:
             boto3_client_kwargs = {}
@@ -500,6 +512,9 @@ class Cognito:
             client_id=self.client_id,
             client=self.client,
             client_secret=self.client_secret,
+            device_key=self.device_key,
+            device_group_key=self.device_group_key,
+            device_password=self.device_password,
         )
         try:
             tokens = aws.authenticate_user(client_metadata=client_metadata)
@@ -508,6 +523,14 @@ class Cognito:
             raise mfa_challenge
 
         self._set_tokens(tokens)
+
+        # only need to confirm the device if it is not already confirmed
+        # if a user has saved these values and provided them, we don't need to confirm again
+        # this can be determined by existence of self.device_key but no NewDeviceMetadata
+        if self.device_key is not None and "NewDeviceMetadata" in tokens["AuthenticationResult"]:
+            _, self.device_password = aws.confirm_device(
+                tokens=tokens, device_name=self.device_name
+            )
 
     def new_password_challenge(self, password, new_password):
         """
@@ -702,6 +725,10 @@ class Cognito:
         """
         auth_params = {"REFRESH_TOKEN": self.refresh_token}
         self._add_secret_hash(auth_params, "SECRET_HASH")
+
+        if self.device_key is not None:
+            auth_params["DEVICE_KEY"] = self.device_key
+
         refresh_response = self.client.initiate_auth(
             ClientId=self.client_id,
             AuthFlow="REFRESH_TOKEN_AUTH",
@@ -786,6 +813,11 @@ class Cognito:
         if "RefreshToken" in tokens["AuthenticationResult"]:
             self.refresh_token = tokens["AuthenticationResult"]["RefreshToken"]
         self.token_type = tokens["AuthenticationResult"]["TokenType"]
+
+        if "NewDeviceMetadata" in tokens["AuthenticationResult"]:
+            device_metadata = tokens["AuthenticationResult"]["NewDeviceMetadata"]
+            self.device_key = device_metadata.get("DeviceKey")
+            self.device_group_key = device_metadata.get("DeviceGroupKey")
 
     def _set_attributes(self, response, attribute_dict):
         """
