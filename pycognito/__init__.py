@@ -515,6 +515,7 @@ class Cognito:
             device_key=self.device_key,
             device_group_key=self.device_group_key,
             device_password=self.device_password,
+            device_name=self.device_name,
         )
         try:
             tokens = aws.authenticate_user(client_metadata=client_metadata)
@@ -548,6 +549,7 @@ class Cognito:
             client_id=self.client_id,
             client=self.client,
             client_secret=self.client_secret,
+            device_key=self.device_key,
         )
         tokens = aws.set_new_password_challenge(new_password)
         self._set_tokens(tokens)
