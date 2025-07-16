@@ -568,6 +568,9 @@ class UtilsTestCase(unittest.TestCase):
             # Check that the access token was refreshed to a new one
             self.assertNotEqual(access_token_orig, access_token_new)
 
+            # device password won't be set here, since the returned response
+            # didn't have the NewDeviceMetadata
+            self.assertEqual(srp_auth.cognito_client.device_password, None)
 
     @requests_mock.Mocker()
     @patch(
