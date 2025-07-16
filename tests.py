@@ -56,9 +56,6 @@ def _mock_verify_tokens(self, token, id_name, token_use):
 
 
 def mock_jwt_decode(token, options=None):
-    if "wrong" in token:
-        raise jwt.DecodeError("Invalid token")
-
     return {
         "sub": "1234567890",
         "name": "John Doe",
@@ -578,7 +575,7 @@ class UtilsTestCase(unittest.TestCase):
         _mock_authenticate_user_device_metadata,
     )
     @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
-    @patch("pycognito.__init__.jwt.decode", mock_jwt_decode)
+    @patch("pycognito.jwt.decode", mock_jwt_decode)
     def test_srp_requests_http_auth_with_device(self, m):
         # Get Moto's static public jwks
         jwks_public_key_filename = os.path.join(
