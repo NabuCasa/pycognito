@@ -447,48 +447,47 @@ class UtilsTestCase(unittest.TestCase):
         jwks_public_key_filename = os.path.join(
             os.path.dirname(moto.cognitoidp.__file__), "resources/jwks-public.json"
         )
-        jwks_public_key_f = open(jwks_public_key_filename, "rb")
+        with open(jwks_public_key_filename, "rb") as jwks_public_key_f:
+            # Create some test data
+            test_data = str(uuid.uuid4())
 
-        # Create some test data
-        test_data = str(uuid.uuid4())
+            # Mock a test endpoint. We pretend this endpoint would require an Authorization header
+            m.get("http://test.com", text=test_data)
+            # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
+            # key from above
+            m.get(
+                f"https://cognito-idp.us-east-1.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json",
+                body=jwks_public_key_f,
+            )
 
-        # Mock a test endpoint. We pretend this endpoint would require an Authorization header
-        m.get("http://test.com", text=test_data)
-        # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
-        # key from above
-        m.get(
-            f"https://cognito-idp.us-east-1.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json",
-            body=jwks_public_key_f,
-        )
+            now = datetime.datetime.utcnow()
 
-        now = datetime.datetime.utcnow()
+            # Standup the actual Requests plugin
+            srp_auth = RequestsSrpAuth(
+                username=self.username,
+                password=self.password,
+                user_pool_id=self.user_pool_id,
+                user_pool_region="us-east-1",
+                client_id=self.client_id,
+            )
 
-        # Standup the actual Requests plugin
-        srp_auth = RequestsSrpAuth(
-            username=self.username,
-            password=self.password,
-            user_pool_id=self.user_pool_id,
-            user_pool_region="us-east-1",
-            client_id=self.client_id,
-        )
-
-        # Make the actual request
-        req = requests.get("http://test.com", auth=srp_auth)
-        req.raise_for_status()
-        # Ensure the data returns matches the mocked endpoint
-        self.assertEqual(test_data, req.text)
-
-        # Get the access token used
-        access_token_orig = srp_auth.cognito_client.access_token
-
-        # Make a second request with a time 2 hours in the future
-        with freezegun.freeze_time(now + datetime.timedelta(hours=2)):
+            # Make the actual request
             req = requests.get("http://test.com", auth=srp_auth)
             req.raise_for_status()
+            # Ensure the data returns matches the mocked endpoint
+            self.assertEqual(test_data, req.text)
 
-        access_token_new = srp_auth.cognito_client.access_token
-        # Check that the access token was refreshed to a new one
-        self.assertNotEqual(access_token_orig, access_token_new)
+            # Get the access token used
+            access_token_orig = srp_auth.cognito_client.access_token
+
+            # Make a second request with a time 2 hours in the future
+            with freezegun.freeze_time(now + datetime.timedelta(hours=2)):
+                req = requests.get("http://test.com", auth=srp_auth)
+                req.raise_for_status()
+
+            access_token_new = srp_auth.cognito_client.access_token
+            # Check that the access token was refreshed to a new one
+            self.assertNotEqual(access_token_orig, access_token_new)
 
 
 if __name__ == "__main__":
