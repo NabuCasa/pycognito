@@ -37,7 +37,7 @@ test = [
     "pytest==8.4.1",
     "moto[cognitoidp]==5.0.13",
     "requests-mock==1.12.1",
-    "freezegun==1.5.2"
+    "freezegun==1.5.4"
 ]
 
 [project.urls]
