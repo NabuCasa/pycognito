@@ -940,6 +940,24 @@ class Cognito:
             **kwargs,
         )
 
+    def create_user_pool_client(self, client_name, pool_id=None, **kwargs):
+        """
+        Creates a user pool client
+        :param client_name: The name of the user pool client
+        :param pool_id: The user pool ID (defaults to self.user_pool_id)
+        :param kwargs: Additional User Pool Client parameters
+        :return response: UserPoolClient response from Cognito
+        """
+        if pool_id is None:
+            pool_id = self.user_pool_id
+
+        response = self.client.create_user_pool_client(
+            UserPoolId=pool_id,
+            ClientName=client_name,
+            **kwargs,
+        )
+        return response["UserPoolClient"]
+
     def describe_user_pool_client(self, pool_id: str, client_id: str):
         """
         Returns configuration information of a specified user pool app client
