@@ -734,6 +734,23 @@ class Cognito:
             ClientMetadata=client_metadata,
         )
 
+    def admin_set_user_password(self, username, passqord, permanent=False):
+        """
+        Explicitly set a users password and optionaly set their status as
+        'Confirmed' when Permanent=True
+        :param username: the cognito username
+        :param passqord: the password to set for the user
+        :param permanent: set the password type -
+        if True user status will be set to 'Confirmed',
+        if False user status will be set to 'FORCE_CHANGE_PASSWORD'
+        """
+        self.client.admin_set_user_password(
+            UserPoolId=self.user_pool_id,
+            Username=username,
+            Password=passqord,
+            Permanent=permanent,
+        )
+
     def confirm_forgot_password(self, confirmation_code, password):
         """
         Allows a user to provide their verification code and choose a new password.
