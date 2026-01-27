@@ -30,6 +30,21 @@ def _mock_authenticate_user(_, client=None, client_metadata=None):
     }
 
 
+def _mock_authenticate_user_device_metadata(_, client=None, client_metadata=None):
+    return {
+        "AuthenticationResult": {
+            "TokenType": "admin",
+            "IdToken": "dummy_token",
+            "AccessToken": "dummy_token",
+            "RefreshToken": "dummy_token",
+            "NewDeviceMetadata": {
+                "DeviceKey": "us-east-1_de20abce",
+                "DeviceGroupKey": "device_group_key",
+            },
+        },
+    }
+
+
 def _mock_get_params(_):
     return {"USERNAME": "bob", "SRP_A": "srp"}
 
@@ -38,6 +53,16 @@ def _mock_verify_tokens(self, token, id_name, token_use):
     if "wrong" in token:
         raise TokenVerificationException
     setattr(self, id_name, token)
+
+
+def mock_jwt_decode(token, options=None):
+    return {
+        "sub": "1234567890",
+        "name": "John Doe",
+        "iat": 1516239022,
+        "exp": datetime.datetime.utcnow().timestamp(),
+        "iss": "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_dYDxUeyL1",
+    }
 
 
 class UserObjTestCase(unittest.TestCase):
@@ -299,6 +324,57 @@ class CognitoAuthTestCase(unittest.TestCase):
             stub.assert_no_pending_responses()
 
 
+class CognitoAuthWithDeviceTestCase(CognitoAuthTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user.device_key = "us-east-1_de20abce"
+        self.user.device_group_key = "device_group_key"
+        self.user.device_password = "device_password"
+        self.user.device_name = "device_name"
+
+    @patch(
+        "pycognito.aws_srp.AWSSRP.authenticate_user",
+        _mock_authenticate_user_device_metadata,
+    )
+    @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
+    def test_authenticate(self):
+        self.user.authenticate(self.password)
+        self.assertNotEqual(self.user.access_token, None)
+        self.assertNotEqual(self.user.id_token, None)
+        self.assertNotEqual(self.user.refresh_token, None)
+        self.assertEqual(self.user.device_key, "us-east-1_de20abce")
+        self.assertEqual(self.user.device_group_key, "device_group_key")
+
+    @patch(
+        "pycognito.aws_srp.AWSSRP.authenticate_user",
+        _mock_authenticate_user_device_metadata,
+    )
+    @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
+    @patch("pycognito.Cognito._add_secret_hash", return_value=None)
+    def test_renew_tokens(self, _):
+        stub = Stubber(self.user.client)
+
+        # By the stubber nature, we need to add the sequence
+        # of calls for the AWS SRP auth to test the whole process
+        stub.add_response(
+            method="initiate_auth",
+            service_response=_mock_authenticate_user_device_metadata(None),
+            expected_params={
+                "ClientId": self.app_id,
+                "AuthFlow": "REFRESH_TOKEN_AUTH",
+                "AuthParameters": {
+                    "REFRESH_TOKEN": "dummy_token",
+                    "DEVICE_KEY": self.user.device_key,
+                },
+            },
+        )
+
+        with stub:
+            self.user.authenticate(self.password)
+            self.user.renew_access_token()
+            stub.assert_no_pending_responses()
+
+
 class AWSSRPTestCase(unittest.TestCase):
     def setUp(self):
         if env("USE_CLIENT_SECRET") == "True":
@@ -447,48 +523,115 @@ class UtilsTestCase(unittest.TestCase):
         jwks_public_key_filename = os.path.join(
             os.path.dirname(moto.cognitoidp.__file__), "resources/jwks-public.json"
         )
-        jwks_public_key_f = open(jwks_public_key_filename, "rb")
+        with open(jwks_public_key_filename, "rb") as jwks_public_key_f:
+            # Create some test data
+            test_data = str(uuid.uuid4())
 
-        # Create some test data
-        test_data = str(uuid.uuid4())
+            # Mock a test endpoint. We pretend this endpoint would require an Authorization header
+            m.get("http://test.com", text=test_data)
+            # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
+            # key from above
+            m.get(
+                f"https://cognito-idp.us-east-1.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json",
+                body=jwks_public_key_f,
+            )
 
-        # Mock a test endpoint. We pretend this endpoint would require an Authorization header
-        m.get("http://test.com", text=test_data)
-        # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
-        # key from above
-        m.get(
-            f"https://cognito-idp.us-east-1.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json",
-            body=jwks_public_key_f,
-        )
+            now = datetime.datetime.utcnow()
 
-        now = datetime.datetime.utcnow()
+            # Standup the actual Requests plugin
+            srp_auth = RequestsSrpAuth(
+                username=self.username,
+                password=self.password,
+                user_pool_id=self.user_pool_id,
+                user_pool_region="us-east-1",
+                client_id=self.client_id,
+            )
 
-        # Standup the actual Requests plugin
-        srp_auth = RequestsSrpAuth(
-            username=self.username,
-            password=self.password,
-            user_pool_id=self.user_pool_id,
-            user_pool_region="us-east-1",
-            client_id=self.client_id,
-        )
-
-        # Make the actual request
-        req = requests.get("http://test.com", auth=srp_auth)
-        req.raise_for_status()
-        # Ensure the data returns matches the mocked endpoint
-        self.assertEqual(test_data, req.text)
-
-        # Get the access token used
-        access_token_orig = srp_auth.cognito_client.access_token
-
-        # Make a second request with a time 2 hours in the future
-        with freezegun.freeze_time(now + datetime.timedelta(hours=2)):
+            # Make the actual request
             req = requests.get("http://test.com", auth=srp_auth)
             req.raise_for_status()
+            # Ensure the data returns matches the mocked endpoint
+            self.assertEqual(test_data, req.text)
 
-        access_token_new = srp_auth.cognito_client.access_token
-        # Check that the access token was refreshed to a new one
-        self.assertNotEqual(access_token_orig, access_token_new)
+            # Get the access token used
+            access_token_orig = srp_auth.cognito_client.access_token
+
+            # Make a second request with a time 2 hours in the future
+            with freezegun.freeze_time(now + datetime.timedelta(hours=2)):
+                req = requests.get("http://test.com", auth=srp_auth)
+                req.raise_for_status()
+
+            access_token_new = srp_auth.cognito_client.access_token
+            # Check that the access token was refreshed to a new one
+            self.assertNotEqual(access_token_orig, access_token_new)
+
+            # device password won't be set here, since the returned response
+            # didn't have the NewDeviceMetadata
+            self.assertEqual(srp_auth.cognito_client.device_password, None)
+
+    @requests_mock.Mocker()
+    @patch(
+        "pycognito.aws_srp.AWSSRP.authenticate_user",
+        _mock_authenticate_user_device_metadata,
+    )
+    @patch("pycognito.Cognito.verify_token", _mock_verify_tokens)
+    @patch("pycognito.jwt.decode", mock_jwt_decode)
+    def test_srp_requests_http_auth_with_device(self, m):
+        # Get Moto's static public jwks
+        jwks_public_key_filename = os.path.join(
+            os.path.dirname(moto.cognitoidp.__file__), "resources/jwks-public.json"
+        )
+        with open(jwks_public_key_filename, "rb") as jwks_public_key_f:
+            # Create some test data
+            test_data = str(uuid.uuid4())
+
+            # Mock a test endpoint. We pretend this endpoint would require an Authorization header
+            m.get("http://test.com", text=test_data)
+            # Pycognito will automatically verify the token it receives. Mock the proper endpoint and return the static
+            # key from above
+            m.get(
+                f"https://cognito-idp.us-east-1.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json",
+                body=jwks_public_key_f,
+            )
+
+            m.post(
+                "https://cognito-idp.us-east-1.amazonaws.com/",
+                json=_mock_authenticate_user_device_metadata(None),
+            )
+
+            srp_auth = RequestsSrpAuth(
+                username=self.username,
+                password=self.password,
+                user_pool_id=self.user_pool_id,
+                user_pool_region="us-east-1",
+                client_id=self.client_id,
+            )
+
+            # should be None
+            orig_device_password = srp_auth.cognito_client.device_password
+            self.assertEqual(srp_auth.cognito_client.device_password, None)
+
+            # Make the actual request
+            req = requests.get("http://test.com", auth=srp_auth)
+            req.raise_for_status()
+            # Ensure the data returns matches the mocked endpoint
+            self.assertEqual(test_data, req.text)
+
+            new_device_password = srp_auth.cognito_client.device_password
+
+            self.assertNotEqual(orig_device_password, new_device_password)
+            self.assertNotEqual(new_device_password, None)
+
+            # can't do the same test as above with calling renew_access_token
+            # because freezegun is brute force and changes the EXP value from the token
+            # to an adjusted time, so the renew call thinks it is not expired
+
+            # if we adjust it to try and make it think it's expired, it ends up
+            # expired everywhere and we get failures because the token has been revoked
+
+            # this limitation exists because we are using requets.post to call `confirm_device`
+            # instead of the idp client. tried changing to use the idp client but the Stubber
+            # can't stub that anyway because `confirm_device` is not yet implemented
 
 
 if __name__ == "__main__":

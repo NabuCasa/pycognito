@@ -166,6 +166,7 @@ class AWSSRP:
         device_key=None,
         device_group_key=None,
         device_password=None,
+        device_name=None,
     ):
         if pool_region is not None and client is not None:
             raise ValueError(
@@ -197,13 +198,14 @@ class AWSSRP:
         self.device_key = device_key
         self.device_group_key = device_group_key
         self.device_password = device_password
+        self.device_name = device_name
+
         self.big_n = hex_to_long(N_HEX)
         self.val_g = hex_to_long(G_HEX)
         self.val_k = hex_to_long(hex_hash("00" + N_HEX + "0" + G_HEX))
         self.small_a_value = self.generate_random_small_a()
         self.large_a_value = self.calculate_a()
         self.access_token = None
-        self.device_name = None
         self.cognito_idp_url = None
 
     def generate_random_small_a(self):
