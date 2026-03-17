@@ -292,8 +292,8 @@ class Cognito:
         # Compute and verify at_hash (formerly done by python-jose)
         if "at_hash" in verified:
             alg_obj = jwt.get_algorithm_by_name(header["alg"])
-            digest = alg_obj.compute_hash_digest(self.access_token)
-            at_hash = base64.urlsafe_b64encode(digest[: (len(digest) // 2)]).rstrip("=")
+            digest = alg_obj.compute_hash_digest(self.access_token.encode("ascii"))
+            at_hash = base64.urlsafe_b64encode(digest[: (len(digest) // 2)]).rstrip(b"=").decode("ascii")
             if at_hash != verified["at_hash"]:
                 raise TokenVerificationException(
                     "at_hash claim does not match access_token."
