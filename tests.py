@@ -1,6 +1,9 @@
+import base64
 import datetime
-import unittest
+import hashlib
+import json
 import os.path
+import unittest
 from unittest.mock import patch
 import uuid
 
@@ -10,7 +13,9 @@ import moto.cognitoidp
 import boto3
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
+from cryptography.hazmat.primitives.asymmetric import rsa
 from envs import env
+import jwt
 import requests
 import requests_mock
 
@@ -124,6 +129,47 @@ class CognitoAuthTestCase(unittest.TestCase):
 
         with self.assertRaises(TokenVerificationException):
             self.user.verify_token(bad_access_token, "access_token", "access")
+
+    def test_verify_token_with_at_hash(self):
+        access_token = "access-token"
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_jwk = json.loads(
+            jwt.algorithms.RSAAlgorithm.to_jwk(private_key.public_key())
+        )
+        public_jwk["kid"] = "test-key"
+        self.user.pool_jwk = {"keys": [public_jwk]}
+        self.user.access_token = access_token
+
+        digest = hashlib.sha256(access_token.encode("ascii")).digest()
+        at_hash = (
+            base64.urlsafe_b64encode(digest[: len(digest) // 2])
+            .rstrip(b"=")
+            .decode("ascii")
+        )
+        payload = {
+            "aud": self.app_id,
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(minutes=5),
+            "iss": self.user.user_pool_url,
+            "token_use": "id",
+            "at_hash": at_hash,
+        }
+        headers = {"kid": public_jwk["kid"]}
+        id_token = jwt.encode(payload, private_key, algorithm="RS256", headers=headers)
+
+        claims = self.user.verify_token(id_token, "id_token", "id")
+        self.assertEqual(claims["at_hash"], at_hash)
+
+        invalid_token = jwt.encode(
+            {**payload, "at_hash": "invalid"},
+            private_key,
+            algorithm="RS256",
+            headers=headers,
+        )
+        with self.assertRaisesRegex(
+            TokenVerificationException, "at_hash claim does not match access_token"
+        ):
+            self.user.verify_token(invalid_token, "id_token", "id")
 
     @patch("pycognito.Cognito", autospec=True)
     def test_register(self, cognito_user):
