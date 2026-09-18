@@ -461,7 +461,7 @@ class UtilsTestCase(unittest.TestCase):
             body=jwks_public_key_f,
         )
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
 
         # Standup the actual Requests plugin
         srp_auth = RequestsSrpAuth(
