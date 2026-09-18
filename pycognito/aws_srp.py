@@ -306,7 +306,9 @@ class AWSSRP:
         salt_hex = challenge_parameters["SALT"]
         srp_b_hex = challenge_parameters["SRP_B"]
         secret_block_b64 = challenge_parameters["SECRET_BLOCK"]
-        timestamp = self.get_cognito_formatted_timestamp(datetime.datetime.utcnow())
+        timestamp = self.get_cognito_formatted_timestamp(
+            datetime.datetime.now(datetime.timezone.utc)
+        )
         hkdf = self.get_password_authentication_key(
             user_id_for_srp, self.password, hex_to_long(srp_b_hex), salt_hex
         )
@@ -347,7 +349,9 @@ class AWSSRP:
         timestamp = re.sub(
             r" 0(\d) ",
             r" \1 ",
-            datetime.datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
+            datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%a %b %d %H:%M:%S UTC %Y"
+            ),
         )
         hkdf = self.get_device_authentication_key(
             self.device_group_key,
