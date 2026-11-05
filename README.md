@@ -523,7 +523,7 @@ u = Cognito('your-user-pool-id', 'your-client-id')
 user = u.get_users(attr_map={"given_name":"first_name","family_name":"last_name"})
 ```
 
-You can paginate through retrieving users by specifying the page_limit and page_token arguments.
+You can paginate through retrieving users by specifying the page_limit and page_token arguments. Without `page_limit`, every page is fetched and returned in one list. With `page_limit`, one page is returned and the token for the next page is available from `get_users_pagination_token()`, which returns `None` once there are no more pages.
 
 ```python
 from pycognito import Cognito
@@ -541,8 +541,8 @@ while page_token:
 **Arguments**
 
 - **attr_map:** Dictionary map from Cognito attributes to attribute names we would like to show to our users
-- **pool_id:** The user pool ID to list clients for (uses self.user_pool_id if None)
-- **page_limit:** Max results to return from this request (0 to 60)
+- **pool_id:** The user pool ID to list users for (uses self.user_pool_id if None)
+- **page_limit:** Max results to return from this request (1 to 60)
 - **page_token:** Used to return the next set of items
 
 #### Admin Get User
@@ -970,7 +970,7 @@ u = Cognito('your-user-pool-id', 'your-client-id')
 groups = u.get_groups()
 ```
 
-You can paginate through retrieving groups by specifying the page_limit and page_token arguments.
+You can paginate through retrieving groups by specifying the page_limit and page_token arguments. Without `page_limit`, every page is fetched and returned in one list. With `page_limit`, one page is returned and the token for the next page is available from `get_groups_pagination_token()`, which returns `None` once there are no more pages.
 
 ```python
 from pycognito import Cognito
@@ -988,7 +988,7 @@ while page_token:
 **Arguments**
 
 - **pool_id:** The user pool ID to list groups for (uses self.user_pool_id if None)
-- **page_limit:** Max results to return from this request (0 to 60)
+- **page_limit:** Max results to return from this request (1 to 60)
 - **page_token:** Used to return the next set of items
 
 #### Create Group
@@ -1077,7 +1077,7 @@ while page_token:
 
 - **group_name:** The group name to query
 - **attr_map:** (optional) Attribute map applied to each returned `UserObj`
-- **page_limit:** (optional) Maximum results per request; enables manual pagination
+- **page_limit:** (optional) Max results to return from this request (1 to 60); enables manual pagination
 - **page_token:** (optional) Pagination token from a previous call
 
 #### Admin Add User To Group
@@ -1116,7 +1116,7 @@ u.admin_remove_user_from_group(username='bob', group_name='admins')
 
 #### Admin List Groups For User
 
-Return the list of group names the user belongs to.
+Return the list of group names the user belongs to. Every page of results is fetched, so the list is complete.
 
 ```python
 from pycognito import Cognito
@@ -1193,7 +1193,7 @@ u = Cognito('your-user-pool-id', 'your-client-id')
 clients = u.list_user_pool_clients()
 ```
 
-You can paginate through retrieving clients by specifying the page_limit and page_token arguments.
+You can paginate through retrieving clients by specifying the page_limit and page_token arguments. Without `page_limit`, every page is fetched and returned in one list. With `page_limit`, one page is returned and the token for the next page is available from `get_clients_pagination_token()`, which returns `None` once there are no more pages.
 
 ```python
 from pycognito import Cognito
@@ -1211,7 +1211,7 @@ while page_token:
 **Arguments**
 
 - **pool_id:** The user pool ID to list clients for (uses self.user_pool_id if None)
-- **page_limit:** Max results to return from this request (0 to 60)
+- **page_limit:** Max results to return from this request (1 to 60)
 - **page_token:** Used to return the next set of items
 
 #### Create User Pool Client
@@ -1846,17 +1846,22 @@ The `Cognito` class can list, describe, and forget a user's remembered devices. 
 
 #### list_devices
 
-List devices associated with the currently authenticated user (uses `access_token`). When more results are available, the token for the next page is available from `get_devices_pagination_token()`.
+List devices associated with the currently authenticated user (uses `access_token`). Without `page_limit`, every page is fetched and returned in one list. With `page_limit`, one page is returned and the token for the next page is available from `get_devices_pagination_token()`, which returns `None` once there are no more pages.
 
 ```python
-devices = u.list_devices(limit=10)
-next_token = u.get_devices_pagination_token()
-if next_token:
-    more = u.list_devices(limit=10, pagination_token=next_token)
+# All devices
+devices = u.list_devices()
+
+# Or page through them
+devices = u.list_devices(page_limit=10)
+page_token = u.get_devices_pagination_token()
+while page_token:
+    devices.extend(u.list_devices(page_limit=10, page_token=page_token))
+    page_token = u.get_devices_pagination_token()
 ```
 
-- **limit:** (optional) Maximum number of devices to return (1–60). Defaults to 60.
-- **pagination_token:** (optional) Token for the next page of results
+- **page_limit:** (optional) Max results to return from this request (1 to 60)
+- **page_token:** (optional) Token for the next page of results
 
 #### get_device
 
@@ -1870,15 +1875,18 @@ device = u.get_device(device_key='us-east-1_abc123')
 
 #### admin_list_devices
 
-Admin-privilege list of devices for the specified user.
+Admin-privilege list of devices for the specified user. Paginates the same way as `list_devices`, and shares `get_devices_pagination_token()` with it.
 
 ```python
 devices = u.admin_list_devices(username='bob')
+
+devices = u.admin_list_devices(username='bob', page_limit=10)
+page_token = u.get_devices_pagination_token()
 ```
 
 - **username:** (optional) Username whose devices to list. Defaults to `self.username`.
-- **limit:** (optional) Maximum number of devices to return (1–60). Defaults to 60.
-- **pagination_token:** (optional) Token for the next page of results. The next token is available from `get_devices_pagination_token()`.
+- **page_limit:** (optional) Max results to return from this request (1 to 60)
+- **page_token:** (optional) Token for the next page of results
 
 #### admin_get_device
 

@@ -37,7 +37,7 @@ class UserPoolMixin(CognotoBase):
         return self._group_users_pagination_next_token
 
     def get_devices_pagination_token(self) -> Union[str, None]:
-        """Return the pagination token set by the last list_devices call."""
+        """Return the pagination token set by the last list_devices or admin_list_devices call."""
         return self._devices_pagination_next_token
 
     # ------------------------------------------------------------------
@@ -110,11 +110,11 @@ class UserPoolMixin(CognotoBase):
     ):
         """
         Return all users for a user pool as UserObj instances.
-        When page_limit is set returns that many results (0–60) and stores the
+        When page_limit is set returns that many results (1–60) and stores the
         next-page token in self._users_pagination_next_token.
         :param attr_map: Attribute map applied to each UserObj
         :param pool_id: User pool ID (defaults to self.user_pool_id)
-        :param page_limit: Max results from this request (0–60)
+        :param page_limit: Max results from this request (1–60)
         :param page_token: Pagination token from a previous call
         :return: List of self.user_class instances
         """
@@ -138,8 +138,7 @@ class UserPoolMixin(CognotoBase):
                 )
                 user_list.extend(response.get("Users"))
                 page_token = response.get("PaginationToken")
-        else:
-            self._users_pagination_next_token = page_token
+        self._users_pagination_next_token = page_token
 
         return [
             self.get_user_obj(
@@ -300,7 +299,7 @@ class UserPoolMixin(CognotoBase):
         When page_limit is set returns that many results and stores the
         next-page token in self._groups_pagination_next_token.
         :param pool_id: User pool ID (defaults to self.user_pool_id)
-        :param page_limit: Max results from this request (0–60)
+        :param page_limit: Max results from this request (1–60)
         :param page_token: Pagination token from a previous call
         :return: List of self.group_class instances
         """
@@ -324,8 +323,7 @@ class UserPoolMixin(CognotoBase):
                 )
                 group_list.extend(response.get("Groups"))
                 page_token = response.get("NextToken")
-        else:
-            self._groups_pagination_next_token = page_token
+        self._groups_pagination_next_token = page_token
 
         return [self.get_group_obj(group_data) for group_data in group_list]
 
@@ -394,7 +392,7 @@ class UserPoolMixin(CognotoBase):
         When page_limit is set returns that many results and stores the
         next-page token in self._clients_pagination_next_token.
         :param pool_id: User pool ID (defaults to self.user_pool_id)
-        :param page_limit: Max results from this request (0–60)
+        :param page_limit: Max results from this request (1–60)
         :param page_token: Pagination token from a previous call
         :return: List of client dicts
         """
@@ -418,8 +416,7 @@ class UserPoolMixin(CognotoBase):
                 )
                 client_list.extend(response.get("UserPoolClients"))
                 page_token = response.get("NextToken")
-        else:
-            self._clients_pagination_next_token = page_token
+        self._clients_pagination_next_token = page_token
 
         return client_list
 
@@ -529,44 +526,64 @@ class UserPoolMixin(CognotoBase):
     # Device management
     # ------------------------------------------------------------------
 
-    def list_devices(self, limit=60, pagination_token=None):
+    def list_devices(self, page_limit=None, page_token=None):
         """
         List devices associated with the currently authenticated user.
-        Calls cognito-idp ListDevices using self.access_token.  The token for
-        the next page is available from get_devices_pagination_token().
-        :param limit: Maximum number of devices to return (1–60).
-        :param pagination_token: Token for the next page of results.
+        Calls cognito-idp ListDevices using self.access_token, following every
+        page unless page_limit is set.  When page_limit is set returns that
+        many results and stores the next-page token, available from
+        get_devices_pagination_token().
+        :param page_limit: Max results from this request (1–60)
+        :param page_token: Pagination token from a previous call
         :return: List of device dicts.
         """
-        kwargs = {"AccessToken": self.access_token, "Limit": limit}
-        if pagination_token:
-            kwargs["PaginationToken"] = pagination_token
-        response = self.client.list_devices(**kwargs)
-        self._devices_pagination_next_token = response.get("PaginationToken")
-        return response.get("Devices", [])
+        return self._paginate_devices(
+            self.client.list_devices,
+            {"AccessToken": self.access_token},
+            page_limit,
+            page_token,
+        )
 
-    def admin_list_devices(self, username=None, limit=60, pagination_token=None):
+    def admin_list_devices(self, username=None, page_limit=None, page_token=None):
         """
         Admin-privilege list of devices for the specified user.
-        Calls cognito-idp AdminListDevices.  The token for the next page is
-        available from get_devices_pagination_token().
+        Calls cognito-idp AdminListDevices, following every page unless
+        page_limit is set.  When page_limit is set returns that many results
+        and stores the next-page token, available from
+        get_devices_pagination_token().
         :param username: Username whose devices to list. Defaults to self.username.
-        :param limit: Maximum number of devices to return (1–60).
-        :param pagination_token: Token for the next page of results.
+        :param page_limit: Max results from this request (1–60)
+        :param page_token: Pagination token from a previous call
         :return: List of device dicts.
         """
         if username is None:
             username = self.username
-        kwargs = {
-            "UserPoolId": self.user_pool_id,
-            "Username": username,
-            "Limit": limit,
-        }
-        if pagination_token:
-            kwargs["PaginationToken"] = pagination_token
-        response = self.client.admin_list_devices(**kwargs)
-        self._devices_pagination_next_token = response.get("PaginationToken")
-        return response.get("Devices", [])
+        return self._paginate_devices(
+            self.client.admin_list_devices,
+            {"UserPoolId": self.user_pool_id, "Username": username},
+            page_limit,
+            page_token,
+        )
+
+    def _paginate_devices(self, operation, kwargs, page_limit, page_token):
+        """Shared pagination for ListDevices and AdminListDevices."""
+        if page_limit:
+            kwargs["Limit"] = page_limit
+        if page_token:
+            kwargs["PaginationToken"] = page_token
+
+        response = operation(**kwargs)
+        devices = response.get("Devices", [])
+        page_token = response.get("PaginationToken")
+
+        if page_limit is None:
+            while page_token:
+                kwargs["PaginationToken"] = page_token
+                response = operation(**kwargs)
+                devices.extend(response.get("Devices", []))
+                page_token = response.get("PaginationToken")
+        self._devices_pagination_next_token = page_token
+        return devices
 
     def get_device(self, device_key):
         """
@@ -702,8 +719,7 @@ class UserPoolMixin(CognotoBase):
                 )
                 user_list.extend(response.get("Users", []))
                 next_token = response.get("NextToken")
-        else:
-            self._group_users_pagination_next_token = next_token
+        self._group_users_pagination_next_token = next_token
 
         return [
             self.get_user_obj(

@@ -828,45 +828,13 @@ class ClientAndProviderTestCase(_StubbedCase):
 class DeviceManagementTestCase(_StubbedCase):
     DEVICE = {"DeviceKey": DEVICE_KEY, "DeviceAttributes": []}
 
-    def test_list_devices_defaults(self):
-        self.expect(
-            "list_devices",
-            {"AccessToken": ACCESS_TOKEN, "Limit": 60},
-            {"Devices": [self.DEVICE]},
-        )
-        self.assertEqual(self.cognito.list_devices(), [self.DEVICE])
-        self.assertIsNone(self.cognito.get_devices_pagination_token())
-
-    def test_list_devices_pagination(self):
-        self.expect(
-            "list_devices",
-            {"AccessToken": ACCESS_TOKEN, "Limit": 10, "PaginationToken": "p1"},
-            {"Devices": [self.DEVICE], "PaginationToken": "p2"},
-        )
-        self.cognito.list_devices(limit=10, pagination_token="p1")
-        self.assertEqual(self.cognito.get_devices_pagination_token(), "p2")
-
     def test_admin_list_devices_defaults_to_self_username(self):
         self.expect(
             "admin_list_devices",
-            {"UserPoolId": POOL_ID, "Username": USERNAME, "Limit": 60},
+            {"UserPoolId": POOL_ID, "Username": USERNAME},
             {"Devices": []},
         )
         self.assertEqual(self.cognito.admin_list_devices(), [])
-
-    def test_admin_list_devices_explicit_args(self):
-        self.expect(
-            "admin_list_devices",
-            {
-                "UserPoolId": POOL_ID,
-                "Username": "alice",
-                "Limit": 5,
-                "PaginationToken": "p1",
-            },
-            {"Devices": [self.DEVICE], "PaginationToken": "p2"},
-        )
-        self.cognito.admin_list_devices("alice", limit=5, pagination_token="p1")
-        self.assertEqual(self.cognito.get_devices_pagination_token(), "p2")
 
     def test_get_device(self):
         self.expect(
@@ -895,6 +863,159 @@ class DeviceManagementTestCase(_StubbedCase):
 # ---------------------------------------------------------------------------
 # UserObj delegation
 # ---------------------------------------------------------------------------
+
+
+class PaginationTestCase(_StubbedCase):
+    """
+    Every paginated method must:
+    - follow all pages when page_limit is not set, leaving no stale token
+    - return one page and store the next token when page_limit is set
+    - support the manual loop shown in the README until the token is None
+    """
+
+    # name: (call, operation, base params, limit key, token key, items key,
+    #        item factory, item id, token getter)
+    SPECS = {
+        "get_users": (
+            lambda c, **kw: c.get_users(**kw),
+            "list_users",
+            {"UserPoolId": POOL_ID},
+            "Limit",
+            "PaginationToken",
+            "Users",
+            lambda i: {"Username": f"u{i}", "Attributes": []},
+            lambda item: item.username,
+            "get_users_pagination_token",
+        ),
+        "get_groups": (
+            lambda c, **kw: c.get_groups(**kw),
+            "list_groups",
+            {"UserPoolId": POOL_ID},
+            "Limit",
+            "NextToken",
+            "Groups",
+            lambda i: {"GroupName": f"g{i}"},
+            lambda item: item.group_name,
+            "get_groups_pagination_token",
+        ),
+        "list_user_pool_clients": (
+            lambda c, **kw: c.list_user_pool_clients(**kw),
+            "list_user_pool_clients",
+            {"UserPoolId": POOL_ID},
+            "MaxResults",
+            "NextToken",
+            "UserPoolClients",
+            lambda i: {"ClientId": f"c{i}"},
+            lambda item: item["ClientId"],
+            "get_clients_pagination_token",
+        ),
+        "list_users_in_group": (
+            lambda c, **kw: c.list_users_in_group("g", **kw),
+            "list_users_in_group",
+            {"GroupName": "g", "UserPoolId": POOL_ID},
+            "Limit",
+            "NextToken",
+            "Users",
+            lambda i: {"Username": f"u{i}", "Attributes": []},
+            lambda item: item.username,
+            "get_group_users_pagination_token",
+        ),
+        "list_devices": (
+            lambda c, **kw: c.list_devices(**kw),
+            "list_devices",
+            {"AccessToken": ACCESS_TOKEN},
+            "Limit",
+            "PaginationToken",
+            "Devices",
+            lambda i: {"DeviceKey": f"us-east-1_d{i}"},
+            lambda item: item["DeviceKey"],
+            "get_devices_pagination_token",
+        ),
+        "admin_list_devices": (
+            lambda c, **kw: c.admin_list_devices(username="alice", **kw),
+            "admin_list_devices",
+            {"UserPoolId": POOL_ID, "Username": "alice"},
+            "Limit",
+            "PaginationToken",
+            "Devices",
+            lambda i: {"DeviceKey": f"us-east-1_d{i}"},
+            lambda item: item["DeviceKey"],
+            "get_devices_pagination_token",
+        ),
+    }
+
+    def _page(self, spec, start, count, next_token):
+        _, _, _, _, token_key, items_key, factory, _, _ = spec
+        page = {items_key: [factory(i) for i in range(start, start + count)]}
+        if next_token:
+            page[token_key] = next_token
+        return page
+
+    def _expect_page(self, spec, page, limit=None, token=None):
+        _, operation, base, limit_key, token_key, *_ = spec
+        params = dict(base)
+        if limit is not None:
+            params[limit_key] = limit
+        if token is not None:
+            params[token_key] = token
+        self.expect(operation, params, page)
+
+    def _ids(self, spec, items):
+        return [spec[7](item) for item in items]
+
+    def _token(self, spec):
+        return getattr(self.cognito, spec[8])()
+
+    def test_without_page_limit_follows_every_page(self):
+        for name, spec in self.SPECS.items():
+            with self.subTest(name):
+                self._expect_page(spec, self._page(spec, 0, 2, "t1"))
+                self._expect_page(spec, self._page(spec, 2, 2, "t2"), token="t1")
+                self._expect_page(spec, self._page(spec, 4, 1, None), token="t2")
+                items = spec[0](self.cognito)
+                self.assertEqual(len(self._ids(spec, items)), 5)
+                self.assertIsNone(self._token(spec))
+
+    def test_without_page_limit_starts_from_page_token(self):
+        for name, spec in self.SPECS.items():
+            with self.subTest(name):
+                self._expect_page(spec, self._page(spec, 2, 2, "t2"), token="t1")
+                self._expect_page(spec, self._page(spec, 4, 1, None), token="t2")
+                items = spec[0](self.cognito, page_token="t1")
+                self.assertEqual(len(items), 3)
+
+    def test_page_limit_returns_one_page_and_stores_token(self):
+        for name, spec in self.SPECS.items():
+            with self.subTest(name):
+                self._expect_page(spec, self._page(spec, 0, 2, "t1"), limit=2)
+                items = spec[0](self.cognito, page_limit=2)
+                self.assertEqual(len(items), 2)
+                self.assertEqual(self._token(spec), "t1")
+
+    def test_manual_loop_collects_every_page(self):
+        for name, spec in self.SPECS.items():
+            with self.subTest(name):
+                self._expect_page(spec, self._page(spec, 0, 2, "t1"), limit=2)
+                self._expect_page(spec, self._page(spec, 2, 2, "t2"), 2, "t1")
+                self._expect_page(spec, self._page(spec, 4, 1, None), 2, "t2")
+
+                items = spec[0](self.cognito, page_limit=2)
+                token = self._token(spec)
+                while token:
+                    items += spec[0](self.cognito, page_limit=2, page_token=token)
+                    token = self._token(spec)
+                self.assertEqual(len(set(self._ids(spec, items))), 5)
+                self.assertIsNone(token)
+
+    def test_full_fetch_clears_token_from_earlier_page(self):
+        for name, spec in self.SPECS.items():
+            with self.subTest(name):
+                self._expect_page(spec, self._page(spec, 0, 2, "t1"), limit=2)
+                self._expect_page(spec, self._page(spec, 0, 1, None))
+                spec[0](self.cognito, page_limit=2)
+                self.assertEqual(self._token(spec), "t1")
+                spec[0](self.cognito)
+                self.assertIsNone(self._token(spec))
 
 
 class UserObjDelegationTestCase(_StubbedCase):
