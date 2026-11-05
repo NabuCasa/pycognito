@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import boto3
-from botocore.exceptions import ParamValidationError
+from botocore.exceptions import ClientError, ParamValidationError
 from botocore.stub import Stubber
 import moto
 import pendulum
@@ -636,6 +636,116 @@ class AdminUserGlobalSignOutTestCase(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0]["Username"], self.username)
         self.assertEqual(calls[0]["UserPoolId"], self.user_pool_id)
+
+
+# ---------------------------------------------------------------------------
+# revoke_token (no moto support, so the client is stubbed)
+# ---------------------------------------------------------------------------
+
+
+class RevokeTokenTestCase(unittest.TestCase):
+    """Tests for tokens.py: revoke_token."""
+
+    client_id = "testclientid"
+    # botocore validates ClientSecret as 24 to 64 characters
+    client_secret = "s" * 32
+
+    def _cognito(self, client_secret=None):
+        cognito = Cognito(
+            user_pool_id="us-east-1_123456789",
+            client_id=self.client_id,
+            username="testuser",
+            client_secret=client_secret,
+            id_token="stored_id_token",
+            access_token="stored_access_token",
+            refresh_token="stored_refresh_token",
+        )
+        cognito.token_type = "Bearer"
+        return cognito
+
+    def _assert_tokens_cleared(self, cognito):
+        self.assertIsNone(cognito.id_token)
+        self.assertIsNone(cognito.refresh_token)
+        self.assertIsNone(cognito.access_token)
+        self.assertIsNone(cognito.token_type)
+
+    def _assert_tokens_kept(self, cognito):
+        self.assertEqual(cognito.id_token, "stored_id_token")
+        self.assertEqual(cognito.refresh_token, "stored_refresh_token")
+        self.assertEqual(cognito.access_token, "stored_access_token")
+        self.assertEqual(cognito.token_type, "Bearer")
+
+    def _revoke(self, cognito, expected_params, **kwargs):
+        with Stubber(cognito.client) as stub:
+            stub.add_response("revoke_token", {}, expected_params)
+            cognito.revoke_token(**kwargs)
+            stub.assert_no_pending_responses()
+
+    def test_defaults_to_own_refresh_token_and_clears_tokens(self):
+        cognito = self._cognito()
+        self._revoke(
+            cognito,
+            {"Token": "stored_refresh_token", "ClientId": self.client_id},
+        )
+        self._assert_tokens_cleared(cognito)
+
+    def test_explicit_other_token_keeps_tokens(self):
+        cognito = self._cognito()
+        self._revoke(
+            cognito,
+            {"Token": "other_refresh_token", "ClientId": self.client_id},
+            token="other_refresh_token",
+        )
+        self._assert_tokens_kept(cognito)
+
+    def test_explicit_own_token_clears_tokens(self):
+        cognito = self._cognito()
+        self._revoke(
+            cognito,
+            {"Token": "stored_refresh_token", "ClientId": self.client_id},
+            token="stored_refresh_token",
+        )
+        self._assert_tokens_cleared(cognito)
+
+    def test_default_token_with_client_secret(self):
+        cognito = self._cognito(client_secret=self.client_secret)
+        self._revoke(
+            cognito,
+            {
+                "Token": "stored_refresh_token",
+                "ClientId": self.client_id,
+                "ClientSecret": self.client_secret,
+            },
+        )
+        self._assert_tokens_cleared(cognito)
+
+    def test_explicit_token_with_client_secret(self):
+        cognito = self._cognito(client_secret=self.client_secret)
+        self._revoke(
+            cognito,
+            {
+                "Token": "other_refresh_token",
+                "ClientId": self.client_id,
+                "ClientSecret": self.client_secret,
+            },
+            token="other_refresh_token",
+        )
+        self._assert_tokens_kept(cognito)
+
+    def test_failed_revoke_keeps_tokens(self):
+        cognito = self._cognito()
+        with Stubber(cognito.client) as stub:
+            stub.add_client_error("revoke_token", "UnauthorizedException")
+            with self.assertRaises(ClientError):
+                cognito.revoke_token()
+        self._assert_tokens_kept(cognito)
+
+    def test_no_token_raises_without_calling_cognito(self):
+        cognito = self._cognito()
+        cognito.refresh_token = None
+        # Stubber fails any call that has no queued response
+        with Stubber(cognito.client), self.assertRaises(AttributeError):
+            cognito.revoke_token()
 
 
 if __name__ == "__main__":

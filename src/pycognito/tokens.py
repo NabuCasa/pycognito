@@ -145,17 +145,31 @@ class TokensMixin(CognotoBase):
         return expired
 
     # ------------------------------------------------------------------
-    # Token management stubs
+    # Token management
     # ------------------------------------------------------------------
 
     def revoke_token(self, token=None):
         """
         Revoke a refresh token, invalidating all access tokens issued from it.
-        Calls cognito-idp RevokeToken.
+        Calls cognito-idp RevokeToken.  When the revoked token is this object's
+        own refresh token, id_token, refresh_token, access_token, and token_type
+        are cleared locally.  Revoking any other token leaves them untouched.
         :param token: Refresh token to revoke. Defaults to self.refresh_token.
-        :raises NotImplementedError:
+        :raises AttributeError: if there is no token to revoke
         """
-        raise NotImplementedError("revoke_token is not yet implemented")
+        if token is None:
+            token = self.refresh_token
+        if not token:
+            raise AttributeError("Refresh Token Required to Revoke Token")
+        params = {"Token": token, "ClientId": self.client_id}
+        if self.client_secret is not None:
+            params["ClientSecret"] = self.client_secret
+        self.client.revoke_token(**params)
+        if token == self.refresh_token:
+            self.id_token = None
+            self.refresh_token = None
+            self.access_token = None
+            self.token_type = None
 
     def admin_user_global_sign_out(self, username=None):
         """
