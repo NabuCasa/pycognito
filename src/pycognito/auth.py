@@ -314,28 +314,8 @@ class AuthMixin(CognotoBase):
         )
 
     # ------------------------------------------------------------------
-    # Auth flow stubs
+    # Admin token refresh
     # ------------------------------------------------------------------
-
-    def authenticate_custom_auth(self, client_metadata=None):
-        """
-        Initiate a CUSTOM_AUTH flow for use with Cognito Lambda triggers
-        implementing a custom challenge/response cycle.
-        :param client_metadata: Optional metadata dict passed to the
-            Define/Create/Verify Auth Challenge Lambda triggers.
-        :raises NotImplementedError:
-        """
-        raise NotImplementedError("authenticate_custom_auth is not yet implemented")
-
-    def admin_authenticate_with_mfa(self, password):
-        """
-        Admin-privilege authentication that correctly handles MFA challenges
-        (SMS_MFA and SOFTWARE_TOKEN_MFA) raised by ALLOW_ADMIN_USER_PASSWORD_AUTH,
-        storing mfa_tokens so the caller can proceed with respond_to_*_mfa_challenge.
-        :param password: User's password
-        :raises NotImplementedError:
-        """
-        raise NotImplementedError("admin_authenticate_with_mfa is not yet implemented")
 
     def admin_renew_access_token(self):
         """
