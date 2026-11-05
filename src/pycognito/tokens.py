@@ -44,7 +44,7 @@ class TokensMixin(CognotoBase):
         keys = self.get_keys().get("keys")
         key = list(filter(lambda x: x.get("kid") == kid, keys))
         if not key:
-            raise jwt.PyJWTError("Token Expired")
+            raise jwt.PyJWTError(f"key with ID {kid} not found")
         return key[0]
 
     # ------------------------------------------------------------------

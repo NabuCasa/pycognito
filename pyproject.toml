@@ -5,15 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pycognito"
 dynamic = ["version"]          # version comes from git tags via setuptools-scm
-description = "Python library for Amazon Cognito (fork of pvizeli/pycognito)"
+description = "Python class to integrate Boto3's Cognito client so it is easy to login users. With SRP support."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 authors = [
-    { name = "Kieren Eaton", email = "circuloned@gmail.com" },
-]
-maintainers = [
-    { name = "Kieren Eaton", email = "circuloned@gmail.com" },
+    { name = "Pascal Vizeli", email = "pvizeli@syshack.ch" },
 ]
 keywords = ["cognito", "aws", "authentication"]
 classifiers = [
@@ -38,10 +35,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage           = "https://github.com/circulon/pycognito"
-Repository         = "https://github.com/circulon/pycognito"
-"Bug Tracker"      = "https://github.com/circulon/pycognito/issues"
-"Original Project" = "https://github.com/pvizeli/pycognito"
+"Source code" = "https://github.com/pvizeli/pycognito"
 
 # ---------------------------------------------------------------------------
 # Version sourced exclusively from git tags — no manual bumping needed.

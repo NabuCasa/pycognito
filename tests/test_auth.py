@@ -58,6 +58,17 @@ class CognitoAuthTestCase(unittest.TestCase):
         with self.assertRaises(TokenVerificationException):
             self.user.verify_token(bad_access_token, "access_token", "access")
 
+    def test_verify_token_unknown_kid(self):
+        header = base64.urlsafe_b64encode(
+            json.dumps({"alg": "RS256", "kid": "missing-kid"}).encode()
+        ).rstrip(b"=")
+        token = header.decode() + ".e30.c2ln"
+        self.user.pool_jwk = {"keys": [{"kid": "some-other-kid"}]}
+        with self.assertRaisesRegex(
+            TokenVerificationException, "key with ID missing-kid not found"
+        ):
+            self.user.verify_token(token, "access_token", "access")
+
     @patch("src.pycognito.Cognito", autospec=True)
     def test_register(self, cognito_user):
         user = cognito_user(

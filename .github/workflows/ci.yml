@@ -37,3 +37,23 @@ jobs:
           cache: "pip"
       - run: make init-ci
       - run: make test
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    needs: lint
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # setuptools-scm needs tags to compute the version
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - uses: actions/upload-artifact@v5.0.0
+        with:
+          name: "dist"
+          path: "dist/"
+          if-no-files-found: error
+          retention-days: 3

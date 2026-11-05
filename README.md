@@ -2,12 +2,6 @@
 
 Makes working with AWS Cognito easier for Python developers.
 
-> **Fork notice** — This is an independently maintained fork of
-> [NabuCasa/pycognito](https://github.com/NabuCasa/pycognito) (formerly
-> pvizeli/pycognito), and isn't affiliated with that project. Full credit to the
-> original authors. The fork carries features and fixes that aren't in the
-> original's latest PyPI release, 2024.5.1.
-
 ## Getting Started
 
 - [Python Versions Supported](#python-versions-supported)
@@ -110,10 +104,7 @@ Makes working with AWS Cognito easier for Python developers.
 
 ## Install
 
-This fork isn't on PyPI, where `pip install pycognito` gets the original project.
-Install a tagged release from GitHub instead:
-
-`pip install git+https://github.com/circulon/pycognito.git@2026.11.0`
+`pip install pycognito`
 
 ## Environment Variables
 
@@ -1700,7 +1691,7 @@ The method returns two values, `response` and `device_password`. `device_passwor
 the Cognito user pool.
 
 ```python
-response, device_password = user.confirm_device(tokens=tokens)
+response, device_password = aws.confirm_device(tokens=tokens)
 ```
 
 ### Updating Device Status
@@ -1711,7 +1702,7 @@ three inputs, `is_remembered`, `access_token` and `device_key`. `is_remembered` 
 provided by the `authenticate_user` method.
 
 ```python
-response = user.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
+response = aws.update_device_status(False, tokens["AuthenticationResult"]["AccessToken"], device_key)
 ```
 
 ### Authenticating your Device
@@ -1886,9 +1877,9 @@ Contributions are welcome — bug fixes, new features, and documentation improve
 You'll need Python 3.9+ and [Make](https://www.gnu.org/software/make/).
 
 ```bash
-git clone https://github.com/circulon/pycognito.git
+git clone https://github.com/pvizeli/pycognito.git
 cd pycognito
-````
+```
 
 You should set up a virtual environment and run tests via pytest:
 
@@ -1908,7 +1899,7 @@ make init
 | `make lint`      | Run `ruff` linter (no fixes applied)                      |
 | `make format`    | Run `ruff` formatter (no fixes applied)                   |
 | `make lint-fix`  | Run `ruff` linter and formatter (auto fix where possible) |
-| `make test`      | Run tests against the current Python version via tox      |
+| `make test`      | Run tests against the current Python version with pytest  |
 
 ### Running Tests
 
@@ -1933,7 +1924,7 @@ make lint
 
 ### Submitting a Pull Request
 
-1. Fork the repository and create a branch from `main`
-2. Make your changes and ensure `make ci` passes locally
+1. Fork the repository and create a branch from `master`
+2. Make your changes and ensure `make lint format test` passes locally
 3. Add or update tests to cover your change
 4. Open a pull request with a clear description of what changed and why
