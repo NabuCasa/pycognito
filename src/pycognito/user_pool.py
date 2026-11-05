@@ -36,6 +36,10 @@ class UserPoolMixin(CognotoBase):
         """Return the pagination token set by the last list_users_in_group call."""
         return self._group_users_pagination_next_token
 
+    def get_devices_pagination_token(self) -> Union[str, None]:
+        """Return the pagination token set by the last list_devices call."""
+        return self._devices_pagination_next_token
+
     # ------------------------------------------------------------------
     # Object factories
     # ------------------------------------------------------------------
@@ -522,31 +526,47 @@ class UserPoolMixin(CognotoBase):
         )
 
     # ------------------------------------------------------------------
-    # Device management stubs
+    # Device management
     # ------------------------------------------------------------------
 
     def list_devices(self, limit=60, pagination_token=None):
         """
         List devices associated with the currently authenticated user.
-        Calls cognito-idp ListDevices using self.access_token.
+        Calls cognito-idp ListDevices using self.access_token.  The token for
+        the next page is available from get_devices_pagination_token().
         :param limit: Maximum number of devices to return (1–60).
         :param pagination_token: Token for the next page of results.
         :return: List of device dicts.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("list_devices is not yet implemented")
+        kwargs = {"AccessToken": self.access_token, "Limit": limit}
+        if pagination_token:
+            kwargs["PaginationToken"] = pagination_token
+        response = self.client.list_devices(**kwargs)
+        self._devices_pagination_next_token = response.get("PaginationToken")
+        return response.get("Devices", [])
 
     def admin_list_devices(self, username=None, limit=60, pagination_token=None):
         """
         Admin-privilege list of devices for the specified user.
-        Calls cognito-idp AdminListDevices.
+        Calls cognito-idp AdminListDevices.  The token for the next page is
+        available from get_devices_pagination_token().
         :param username: Username whose devices to list. Defaults to self.username.
         :param limit: Maximum number of devices to return (1–60).
         :param pagination_token: Token for the next page of results.
         :return: List of device dicts.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("admin_list_devices is not yet implemented")
+        if username is None:
+            username = self.username
+        kwargs = {
+            "UserPoolId": self.user_pool_id,
+            "Username": username,
+            "Limit": limit,
+        }
+        if pagination_token:
+            kwargs["PaginationToken"] = pagination_token
+        response = self.client.admin_list_devices(**kwargs)
+        self._devices_pagination_next_token = response.get("PaginationToken")
+        return response.get("Devices", [])
 
     def get_device(self, device_key):
         """
@@ -554,9 +574,11 @@ class UserPoolMixin(CognotoBase):
         Calls cognito-idp GetDevice using self.access_token.
         :param device_key: The device key to describe.
         :return: Device dict.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("get_device is not yet implemented")
+        response = self.client.get_device(
+            DeviceKey=device_key, AccessToken=self.access_token
+        )
+        return response["Device"]
 
     def admin_get_device(self, device_key, username=None):
         """
@@ -565,9 +587,13 @@ class UserPoolMixin(CognotoBase):
         :param device_key: The device key to describe.
         :param username: Username who owns the device. Defaults to self.username.
         :return: Device dict.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("admin_get_device is not yet implemented")
+        if username is None:
+            username = self.username
+        response = self.client.admin_get_device(
+            DeviceKey=device_key, UserPoolId=self.user_pool_id, Username=username
+        )
+        return response["Device"]
 
     def admin_forget_device(self, device_key, username=None):
         """
@@ -575,12 +601,15 @@ class UserPoolMixin(CognotoBase):
         Calls cognito-idp AdminForgetDevice.
         :param device_key: The device key to forget.
         :param username: Username who owns the device. Defaults to self.username.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("admin_forget_device is not yet implemented")
+        if username is None:
+            username = self.username
+        self.client.admin_forget_device(
+            UserPoolId=self.user_pool_id, Username=username, DeviceKey=device_key
+        )
 
     # ------------------------------------------------------------------
-    # Group CRUD stubs
+    # Group CRUD
     # ------------------------------------------------------------------
 
     def create_group(
@@ -687,7 +716,7 @@ class UserPoolMixin(CognotoBase):
         ]
 
     # ------------------------------------------------------------------
-    # Federated identity stubs
+    # Federated identity
     # ------------------------------------------------------------------
 
     def admin_link_provider_for_user(
@@ -705,24 +734,45 @@ class UserPoolMixin(CognotoBase):
         :param provider_attribute_name: Provider attribute used to identify
             the user (e.g. "Cognito_Subject").
         :param provider_attribute_value: The provider attribute value.
-        :raises NotImplementedError:
         """
-        raise NotImplementedError("admin_link_provider_for_user is not yet implemented")
+        self.client.admin_link_provider_for_user(
+            UserPoolId=self.user_pool_id,
+            DestinationUser={
+                "ProviderName": "Cognito",
+                "ProviderAttributeValue": destination_username,
+            },
+            SourceUser={
+                "ProviderName": provider_name,
+                "ProviderAttributeName": provider_attribute_name,
+                "ProviderAttributeValue": provider_attribute_value,
+            },
+        )
 
-    def admin_disable_provider_for_user(self, provider_name, provider_attribute_value):
+    def admin_disable_provider_for_user(
+        self,
+        provider_name,
+        provider_attribute_value,
+        provider_attribute_name="Cognito_Subject",
+    ):
         """
         Unlink (disable) a federated provider from a Cognito user.
         Calls cognito-idp AdminDisableProviderForUser.
         :param provider_name: The identity provider name.
         :param provider_attribute_value: The provider user identifier to unlink.
-        :raises NotImplementedError:
+        :param provider_attribute_name: Provider attribute that identifies the
+            user (default "Cognito_Subject").
         """
-        raise NotImplementedError(
-            "admin_disable_provider_for_user is not yet implemented"
+        self.client.admin_disable_provider_for_user(
+            UserPoolId=self.user_pool_id,
+            User={
+                "ProviderName": provider_name,
+                "ProviderAttributeName": provider_attribute_name,
+                "ProviderAttributeValue": provider_attribute_value,
+            },
         )
 
     # ------------------------------------------------------------------
-    # User pool management stubs
+    # User pool management
     # ------------------------------------------------------------------
 
     def describe_user_pool(self, pool_id=None):

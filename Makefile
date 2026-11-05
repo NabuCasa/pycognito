@@ -23,4 +23,5 @@ lint-fix:
 
 .PHONY: test
 test:
-	pytest tests
+	coverage run -m pytest tests
+	coverage report

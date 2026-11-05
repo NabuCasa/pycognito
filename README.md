@@ -7,7 +7,7 @@ Makes working with AWS Cognito easier for Python developers.
 - [Python Versions Supported](#python-versions-supported)
 - [Install](#install)
 - [Environment Variables](#environment-variables)
-  - [COGNITO_JWKS](#cognitojwks) (optional)
+  - [COGNITO_JWKS](#cognito_jwks) (optional)
 - [Cognito Utility Class](#cognito-utility-class) `pycognito.Cognito`
   - [Cognito Attributes](#cognito-attributes)
   - [Authentication](#authentication)
@@ -38,12 +38,14 @@ Makes working with AWS Cognito easier for Python developers.
     - [Admin Disable User](#admin-disable-user)
     - [Delete User](#delete-user)
     - [Admin Delete User](#admin-delete-user)
+    - [User Objects](#user-objects)
   - [Token & Session Management](#token--session-management)
     - [Check Token](#check-token)
     - [Verify Tokens](#verify-tokens)
     - [Renew Access Token](#renew-access-token)
     - [Admin Renew Access Token](#admin-renew-access-token)
     - [Logout](#logout)
+    - [Revoke Token](#revoke-token)
     - [Admin User Global Sign Out](#admin-user-global-sign-out)
   - [Group Management](#group-management)
     - [Get Group Object](#get-group-object)
@@ -88,8 +90,9 @@ Makes working with AWS Cognito easier for Python developers.
   - [Authenticating your Device](#authenticating-your-device)
   - [Using Device Auth with the Cognito Class](#using-device-auth-with-the-cognito-class)
   - [Forget Device](#forget-device)
-  - [Device Methods Requiring a Live Pool](#device-methods-requiring-a-live-pool)
+  - [Device Management with the Cognito Class](#device-management-with-the-cognito-class)
 - [SRP Requests Authenticator](#srp-requests-authenticator)
+- [Switching boto3 Sessions](#switching-boto3-sessions)
 - [Contributing](#contributing)
 
 ---
@@ -251,13 +254,18 @@ u.register('username', 'password')
 
 - **username:** User Pool username
 - **password:** User Pool password
-- **attr_map:** Attribute map to Cognito's attributes
+- **attr_map:** (optional) Attribute map to Cognito's attributes
+- **client_metadata:** (optional) Dict passed to the pool's Lambda triggers (for example Pre sign-up) as `ClientMetadata`
+
+Returns the `sign_up` response (`UserConfirmed`, `UserSub` and, when confirmation is required, `CodeDeliveryDetails`).
 
 #### Authenticate
 
 Authenticates a user
 
-If this method call succeeds the instance will have the following attributes **id_token**, **refresh_token**, **access_token**, **expires_in**, **expires_datetime**, and **token_type**.
+If this method call succeeds the instance will have the following attributes **id_token**, **refresh_token**, **access_token**, **token_type**, **id_claims**, and **access_claims**.
+
+If Cognito asks for a second factor, `authenticate` raises `SMSMFAChallengeException` or `SoftwareTokenMFAChallengeException` and stores the challenge on `u.mfa_tokens`. Answer it with [Respond to SMS MFA Challenge](#respond-to-sms-mfa-challenge) or [Respond to Software Token MFA Challenge](#respond-to-software-token-mfa-challenge). If the user must set a new password first it raises `ForceChangePasswordException`; see [New Password Challenge](#new-password-challenge).
 
 ```python
 from pycognito import Cognito
@@ -270,11 +278,12 @@ u.authenticate(password='bobs-password')
 
 **Arguments**
 
-- **password:** - User's password
+- **password:** User's password
+- **client_metadata:** (optional) Dict passed to the pool's Lambda triggers as `ClientMetadata` when responding to the SRP challenge
 
 #### Admin Authenticate
 
-Authenticate the user using admin super privileges
+Authenticate the user using admin super privileges, with the `ADMIN_USER_PASSWORD_AUTH` flow. The app client must have `ALLOW_ADMIN_USER_PASSWORD_AUTH` enabled, and the caller needs AWS credentials allowed to call `AdminInitiateAuth`.
 
 ```python
 from pycognito import Cognito
@@ -745,6 +754,20 @@ u.admin_delete_user()
 
 No arguments — deletes `self.username` from `self.user_pool_id`.
 
+#### User Objects
+
+`get_user`, `admin_get_user`, `get_users`, and `list_users_in_group` return instances of `u.user_class` (`UserObj` by default). Cognito attributes are available as Python attributes, using any `attr_map` you passed. Metadata such as `user_status` is also available.
+
+`UserObj.save()` writes changed attributes back with [Update Profile](#update-profile), and `UserObj.delete()` calls [Delete User](#delete-user). Pass `admin=True` to use [Admin Update Profile](#admin-update-profile) or [Admin Delete User](#admin-delete-user) instead; both act on the `Cognito` instance's `username`.
+
+```python
+user = u.get_user(attr_map={'given_name': 'first_name'})
+user.first_name = 'Robert'
+user.save()
+
+user.delete(admin=True)
+```
+
 ---
 
 ## Token & Session Management
@@ -753,7 +776,7 @@ Methods for checking, verifying, refreshing, and invalidating tokens.
 
 #### Check Token
 
-Checks the exp attribute of the access_token and either refreshes the tokens by calling the renew_access_tokens method or does nothing. **IMPORTANT:** Access token is required
+Checks the `exp` claim of the access token. If it has expired, the tokens are refreshed by calling `renew_access_token` (unless `renew=False`). Returns `True` if the access token had expired, otherwise `False`. **IMPORTANT:** Access token is required
 
 ```python
 u = Cognito('your-user-pool-id','your-client-id',
@@ -765,14 +788,14 @@ u.check_token()
 
 **Arguments**
 
-No arguments for check_token
+- **renew:** (optional) Refresh the tokens when the access token has expired. Defaults to `True`.
 
 #### Verify Tokens
 
 Verifies the current `id_token` and `access_token`.
 An exception will be thrown if they do not pass verification.
 It can be useful to call this method immediately after instantiation when you're providing externally-remembered tokens to the `Cognito()` constructor.
-Note that if you're calling `check_tokens()` after instantitation, you'll still want to call `verify_tokens()` afterwards it in case it did nothing.
+Note that if you're calling `check_token()` after instantiation, you'll still want to call `verify_tokens()` afterwards in case it did nothing.
 This method also ensures that the `id_claims` and `access_claims` attributes are set with the verified claims from each token.
 
 ```python
@@ -780,7 +803,7 @@ u = Cognito('your-user-pool-id','your-client-id',
     id_token='id-token',refresh_token='refresh-token',
     access_token='access-token')
 
-u.check_tokens()  # Optional, if you want to maybe renew the tokens
+u.check_token()  # Optional, if you want to maybe renew the tokens
 u.verify_tokens()
 ```
 
@@ -826,7 +849,11 @@ No arguments
 
 #### Logout
 
-Logs the user out of all clients and removes the expires_in, expires_datetime, id_token, refresh_token, access_token, and token_type attributes.
+Signs the user out everywhere by calling Cognito's `GlobalSignOut` with the current access token. This invalidates **every** refresh token issued to the user, on all devices and app clients, so all of their sessions end. Afterwards the `id_token`, `refresh_token`, `access_token`, and `token_type` attributes are set to `None`.
+
+To end only this session and leave the user signed in elsewhere, use [Revoke Token](#revoke-token) instead. To sign out a user without their access token, use [Admin User Global Sign Out](#admin-user-global-sign-out).
+
+Already-issued access and ID tokens stay cryptographically valid until they expire, so services that only check the JWT signature will keep accepting them until then.
 
 ```python
 from pycognito import Cognito
@@ -844,9 +871,35 @@ u.logout()
 
 No arguments for logout
 
+#### Revoke Token
+
+Revokes a single refresh token by calling Cognito's `RevokeToken`. The access and ID tokens issued from that refresh token stop working, but the user's other sessions (other devices or app clients) are not affected. This is a narrower action than [Logout](#logout), which signs the user out of every session.
+
+When the revoked token is the instance's own `refresh_token` (the default), the `id_token`, `refresh_token`, `access_token`, and `token_type` attributes are set to `None`. Revoking any other token leaves them unchanged.
+
+The app client must have token revocation enabled, which is the default for new clients. If the client has a secret, it's sent automatically.
+
+```python
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id','your-client-id',
+    id_token='id-token',refresh_token='refresh-token',
+    access_token='access-token')
+
+# Revoke this instance's refresh token (ends this session only)
+u.revoke_token()
+
+# Or revoke a different refresh token, e.g. one stored for another device
+u.revoke_token(token='another-refresh-token')
+```
+
+**Arguments**
+
+- **token:** (optional) Refresh token to revoke. Defaults to `self.refresh_token`. Raises `AttributeError` if there is no token to revoke.
+
 #### Admin User Global Sign Out
 
-Invalidates all tokens for a user across all clients, regardless of which client they used to sign in. Requires admin credentials.
+Invalidates all tokens for a user across all clients, regardless of which client they used to sign in. Requires admin credentials. This is the admin equivalent of [Logout](#logout): it doesn't need the user's access token, and it doesn't clear the tokens held on the instance.
 
 ```python
 from pycognito import Cognito
@@ -1369,6 +1422,7 @@ u.admin_disable_provider_for_user(
 
 - **provider_name:** The identity provider name
 - **provider_attribute_value:** The provider's unique identifier for the user to unlink
+- **provider_attribute_name:** (optional) Provider attribute that identifies the user. Defaults to `"Cognito_Subject"`, which is what social and OIDC providers use; SAML providers can use another attribute.
 
 ---
 
@@ -1649,7 +1703,10 @@ results in a final response that contains ID, access and refresh tokens.
 
 The `AWSSRP` class takes a username, password, cognito user pool id, cognito app id, an optional
 client secret (if app client is configured with client secret), an optional pool_region or `boto3` client.
-Afterwards, the `authenticate_user` class method is used for SRP authentication.
+Afterwards, the `authenticate_user` class method is used for SRP authentication. It accepts an optional
+`client_metadata` dict, which is passed to the pool's Lambda triggers. Like `Cognito.authenticate`, it raises
+`ForceChangePasswordException`, `SMSMFAChallengeException`, or `SoftwareTokenMFAChallengeException` when Cognito
+returns one of those challenges.
 
 ```python
 import boto3
@@ -1659,6 +1716,15 @@ client = boto3.client('cognito-idp')
 aws = AWSSRP(username='username', password='password', pool_id='user_pool_id',
              client_id='client_id', client=client)
 tokens = aws.authenticate_user()
+
+# Optionally pass metadata through to Lambda triggers
+tokens = aws.authenticate_user(client_metadata={'source': 'web'})
+```
+
+To complete a `NEW_PASSWORD_REQUIRED` challenge directly with `AWSSRP`, call `set_new_password_challenge`:
+
+```python
+tokens = aws.set_new_password_challenge(new_password='new-password')
 ```
 
 ---
@@ -1686,12 +1752,12 @@ device_group_key = tokens["AuthenticationResult"]["NewDeviceMetadata"]["DeviceGr
 
 ### Confirming a Device
 
-The `confirm_device` class method is used for confirming a device, it takes two inputs, `tokens` and `DeviceName` (`DeviceName` is optional).
+The `confirm_device` class method is used for confirming a device, it takes two inputs, `tokens` and `device_name` (`device_name` is optional and defaults to the machine's hostname).
 The method returns two values, `response` and `device_password`. `device_password` will later be used to authenticate your device with
 the Cognito user pool.
 
 ```python
-response, device_password = aws.confirm_device(tokens=tokens)
+response, device_password = aws.confirm_device(tokens=tokens, device_name='My Laptop')
 ```
 
 ### Updating Device Status
@@ -1774,20 +1840,33 @@ To forget device, you can call the `forget_device` class method. It takes `acces
 response = aws.forget_device(access_token='access_token', device_key='device_key')
 ```
 
-### Device Methods Requiring a Live Pool
+### Device Management with the Cognito Class
 
-The following device management methods are defined but require a live Cognito user pool to test — they are not yet exercised by the moto-based test suite. Their signatures are documented here for reference.
+The `Cognito` class can list, describe, and forget a user's remembered devices. Each method returns the device dicts from the Cognito API (`DeviceKey`, `DeviceAttributes`, `DeviceCreateDate`, and so on).
 
 #### list_devices
 
-List devices associated with the currently authenticated user.
+List devices associated with the currently authenticated user (uses `access_token`). When more results are available, the token for the next page is available from `get_devices_pagination_token()`.
 
 ```python
 devices = u.list_devices(limit=10)
+next_token = u.get_devices_pagination_token()
+if next_token:
+    more = u.list_devices(limit=10, pagination_token=next_token)
 ```
 
-- **limit:** (optional) Maximum number of devices to return (1–60)
+- **limit:** (optional) Maximum number of devices to return (1–60). Defaults to 60.
 - **pagination_token:** (optional) Token for the next page of results
+
+#### get_device
+
+Describe one of the authenticated user's devices.
+
+```python
+device = u.get_device(device_key='us-east-1_abc123')
+```
+
+- **device_key:** The device key to describe
 
 #### admin_list_devices
 
@@ -1798,8 +1877,8 @@ devices = u.admin_list_devices(username='bob')
 ```
 
 - **username:** (optional) Username whose devices to list. Defaults to `self.username`.
-- **limit:** (optional) Maximum number of devices to return (1–60)
-- **pagination_token:** (optional) Token for the next page of results
+- **limit:** (optional) Maximum number of devices to return (1–60). Defaults to 60.
+- **pagination_token:** (optional) Token for the next page of results. The next token is available from `get_devices_pagination_token()`.
 
 #### admin_get_device
 
@@ -1868,6 +1947,22 @@ response = requests.get('http://test.com', auth=auth)
 
 ---
 
+## Switching boto3 Sessions
+
+`switch_session` replaces the instance's boto3 client with one created from a different `boto3.Session`, for example to change credentials or to record and replay API calls in tests.
+
+```python
+import boto3
+from pycognito import Cognito
+
+u = Cognito('your-user-pool-id', 'your-client-id')
+u.switch_session(boto3.Session(profile_name='other-profile'))
+```
+
+- **session:** The `boto3.Session` to create the new `cognito-idp` client from
+
+---
+
 ## Contributing
 
 Contributions are welcome — bug fixes, new features, and documentation improvements alike.
@@ -1899,7 +1994,7 @@ make init
 | `make lint`      | Run `ruff` linter (no fixes applied)                      |
 | `make format`    | Run `ruff` formatter (no fixes applied)                   |
 | `make lint-fix`  | Run `ruff` linter and formatter (auto fix where possible) |
-| `make test`      | Run tests against the current Python version with pytest  |
+| `make test`      | Run tests with coverage (fails below 80%)                 |
 
 ### Running Tests
 

@@ -129,7 +129,7 @@ class MFAMixin(CognotoBase):
         self._set_tokens(tokens)
 
     # ------------------------------------------------------------------
-    # MFA configuration stubs
+    # Admin and pool-level MFA configuration
     # ------------------------------------------------------------------
 
     def admin_set_user_mfa_preference(

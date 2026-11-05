@@ -440,7 +440,7 @@ class AWSSRP:
                 ChallengeResponses=challenge_response,
             )
 
-            if tokens["ChallengeName"] == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
+            if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
                 challenge_parameters = response["ChallengeParameters"]
                 challenge_response.update(
                     {

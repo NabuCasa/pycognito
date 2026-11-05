@@ -225,7 +225,7 @@ class CognitoAuthTestCase(unittest.TestCase):
 
     @patch("src.pycognito.Cognito.verify_token", mock_verify_tokens)
     def test_admin_authenticate(self):
-        """admin_authenticate must use ALLOW_ADMIN_USER_PASSWORD_AUTH."""
+        """admin_authenticate must use the ADMIN_USER_PASSWORD_AUTH flow."""
         stub = Stubber(self.user.client)
         stub.add_response(
             method="admin_initiate_auth",
@@ -240,7 +240,7 @@ class CognitoAuthTestCase(unittest.TestCase):
             expected_params={
                 "UserPoolId": self.cognito_user_pool_id,
                 "ClientId": self.app_id,
-                "AuthFlow": "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+                "AuthFlow": "ADMIN_USER_PASSWORD_AUTH",
                 "AuthParameters": {
                     "USERNAME": self.username,
                     "PASSWORD": self.password,

@@ -64,7 +64,7 @@ class AuthMixin(CognotoBase):
         }
         if client_metadata is not None:
             params["ClientMetadata"] = client_metadata
-        self._add_secret_hash(params, "SecretHash")
+        self._add_secret_hash(params, "SecretHash", username)
         response = self.client.sign_up(**params)
 
         attributes.update(username=username, password=password)
@@ -98,7 +98,7 @@ class AuthMixin(CognotoBase):
             "Username": username,
             "ConfirmationCode": confirmation_code,
         }
-        self._add_secret_hash(params, "SecretHash")
+        self._add_secret_hash(params, "SecretHash", username)
         self.client.confirm_sign_up(**params)
 
     def resend_confirmation_code(self, username):
@@ -110,7 +110,7 @@ class AuthMixin(CognotoBase):
             "ClientId": self.client_id,
             "Username": username,
         }
-        self._add_secret_hash(params, "SecretHash")
+        self._add_secret_hash(params, "SecretHash", username)
         self.client.resend_confirmation_code(**params)
 
     # ------------------------------------------------------------------
@@ -119,7 +119,8 @@ class AuthMixin(CognotoBase):
 
     def admin_authenticate(self, password):
         """
-        Authenticate using admin super privileges (ALLOW_ADMIN_USER_PASSWORD_AUTH).
+        Authenticate using admin super privileges (ADMIN_USER_PASSWORD_AUTH flow).
+        The app client must allow ALLOW_ADMIN_USER_PASSWORD_AUTH.
         :param password: User's password
         """
         auth_params = {"USERNAME": self.username, "PASSWORD": password}
@@ -127,10 +128,9 @@ class AuthMixin(CognotoBase):
         tokens = self.client.admin_initiate_auth(
             UserPoolId=self.user_pool_id,
             ClientId=self.client_id,
-            # AuthFlow options: ALLOW_ADMIN_USER_PASSWORD_AUTH | ALLOW_CUSTOM_AUTH |
-            #   ALLOW_USER_PASSWORD_AUTH | ALLOW_USER_SRP_AUTH |
-            #   ALLOW_REFRESH_TOKEN_AUTH | ALLOW_USER_AUTH
-            AuthFlow="ALLOW_ADMIN_USER_PASSWORD_AUTH",
+            # AuthFlow takes an AuthFlowType (ADMIN_USER_PASSWORD_AUTH), not
+            # one of the client's ExplicitAuthFlows (ALLOW_ADMIN_USER_PASSWORD_AUTH)
+            AuthFlow="ADMIN_USER_PASSWORD_AUTH",
             AuthParameters=auth_params,
         )
         self._set_tokens(tokens)
@@ -358,14 +358,16 @@ class AuthMixin(CognotoBase):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _add_secret_hash(self, parameters, key):
+    def _add_secret_hash(self, parameters, key, username=None):
         """
         Compute SecretHash and add it to a parameters dict at the given key.
         No-op when client_secret is not configured.
+        :param username: Username the request is for (defaults to self.username).
+            The hash must be computed from the same username sent to Cognito.
         """
         if self.client_secret is not None:
             secret_hash = AWSSRP.get_secret_hash(
-                self.username, self.client_id, self.client_secret
+                username or self.username, self.client_id, self.client_secret
             )
             parameters[key] = secret_hash
 

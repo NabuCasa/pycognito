@@ -104,7 +104,7 @@ class TokensMixin(CognotoBase):
         # Compute and verify at_hash (formerly done by python-jose)
         if "at_hash" in verified:
             alg_obj = jwt.get_algorithm_by_name(header["alg"])
-            digest = alg_obj.compute_hash_digest(self.access_token)
+            digest = alg_obj.compute_hash_digest(self.access_token.encode("utf-8"))
             at_hash = (
                 base64.urlsafe_b64encode(digest[: (len(digest) // 2)])
                 .rstrip(b"=")

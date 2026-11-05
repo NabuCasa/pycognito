@@ -131,6 +131,7 @@ class Cognito(TokensMixin, AuthMixin, UserPoolMixin, MFAMixin):
         self._groups_pagination_next_token = None
         self._clients_pagination_next_token = None
         self._group_users_pagination_next_token = None
+        self._devices_pagination_next_token = None
 
     @property
     def user_pool_url(self):

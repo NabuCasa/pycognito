@@ -257,6 +257,7 @@ class CognotoBase(Protocol):
     _groups_pagination_next_token: Optional[str]
     _clients_pagination_next_token: Optional[str]
     _group_users_pagination_next_token: Optional[str]
+    _devices_pagination_next_token: Optional[str]
 
     # ------------------------------------------------------------------
     # Cross-mixin method stubs
@@ -308,7 +309,12 @@ class CognotoBase(Protocol):
         """
         ...
 
-    def _add_secret_hash(self, parameters: Dict[str, str], param_name: str) -> None:
+    def _add_secret_hash(
+        self,
+        parameters: Dict[str, str],
+        param_name: str,
+        username: Optional[str] = None,
+    ) -> None:
         """
         Defined in ``AuthMixin``.  Computes the HMAC-SHA256 ``SecretHash``
         and inserts it into *parameters* at *param_name*.  No-op when no
