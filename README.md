@@ -2,10 +2,11 @@
 
 Makes working with AWS Cognito easier for Python developers.
 
-> **Fork notice** — This is an actively maintained fork of
-> [pvizeli/pycognito](https://github.com/pvizeli/pycognito).
-> Full credit to the original authors; this fork exists to continue
-> development after the upstream repository became inactive.
+> **Fork notice** — This is an independently maintained fork of
+> [NabuCasa/pycognito](https://github.com/NabuCasa/pycognito) (formerly
+> pvizeli/pycognito), and isn't affiliated with that project. Full credit to the
+> original authors. The fork carries features and fixes that aren't in the
+> original's latest PyPI release, 2024.5.1.
 
 ## Getting Started
 
@@ -109,7 +110,10 @@ Makes working with AWS Cognito easier for Python developers.
 
 ## Install
 
-`pip install pycognito`
+This fork isn't on PyPI, where `pip install pycognito` gets the original project.
+Install a tagged release from GitHub instead:
+
+`pip install git+https://github.com/circulon/pycognito.git@2026.11.0`
 
 ## Environment Variables
 
