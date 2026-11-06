@@ -1,8 +1,8 @@
 {
   "name": "pycognito dev",
-  "image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.9",
+  "image": "mcr.microsoft.com/devcontainers/python:3-3.14",
   "postStartCommand": "python3 -m pip install -e .",
-  "postCreateCommand": "python3 -m pip install .[lint,test]",
+  "postCreateCommand": "python3 -m pip install -r requirements.txt -r requirements_test.txt",
   "containerUser": "vscode",
   "containerEnv": {
     "GIT_EDITOR": "code --wait"
@@ -12,12 +12,12 @@
       "extensions": [
         "esbenp.prettier-vscode",
         "ms-python.python",
+        "charliermarsh.ruff",
         "ms-python.vscode-pylance",
         "visualstudioexptteam.vscodeintellicode"
       ],
       "settings": {
         "python.pythonPath": "/usr/local/bin/python",
-        "python.formatting.provider": "black",
         "editor.formatOnPaste": false,
         "editor.formatOnSave": true,
         "editor.formatOnType": true,

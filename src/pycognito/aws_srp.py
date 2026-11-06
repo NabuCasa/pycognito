@@ -1,20 +1,19 @@
 import base64
 import binascii
-import datetime
 import hashlib
 import hmac
 import json
 import os
-import re
 import platform
-import requests
 
 import boto3
+import pendulum
+import requests
 
 from .exceptions import (
     ForceChangePasswordException,
-    SoftwareTokenMFAChallengeException,
     SMSMFAChallengeException,
+    SoftwareTokenMFAChallengeException,
 )
 
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L22
@@ -39,21 +38,6 @@ N_HEX = (
 # https://github.com/aws/amazon-cognito-identity-js/blob/master/src/AuthenticationHelper.js#L49
 G_HEX = "2"
 INFO_BITS = bytearray("Caldera Derived Key", "utf-8")
-WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-MONTH_NAMES = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-]
 
 
 def hash_sha256(buf):
@@ -166,6 +150,7 @@ class AWSSRP:
         device_key=None,
         device_group_key=None,
         device_password=None,
+        device_name=None,
     ):
         if pool_region is not None and client is not None:
             raise ValueError(
@@ -197,13 +182,13 @@ class AWSSRP:
         self.device_key = device_key
         self.device_group_key = device_group_key
         self.device_password = device_password
+        self.device_name = device_name
         self.big_n = hex_to_long(N_HEX)
         self.val_g = hex_to_long(G_HEX)
         self.val_k = hex_to_long(hex_hash("00" + N_HEX + "0" + G_HEX))
         self.small_a_value = self.generate_random_small_a()
         self.large_a_value = self.calculate_a()
         self.access_token = None
-        self.device_name = None
         self.cognito_idp_url = None
 
     def generate_random_small_a(self):
@@ -296,7 +281,8 @@ class AWSSRP:
 
     @staticmethod
     def get_cognito_formatted_timestamp(input_datetime):
-        return f"{WEEKDAY_NAMES[input_datetime.weekday()]} {MONTH_NAMES[input_datetime.month - 1]} {input_datetime.day:d} {input_datetime.hour:02d}:{input_datetime.minute:02d}:{input_datetime.second:02d} UTC {input_datetime.year:d}"
+        # pendulum format tokens: ddd=Mon, MMM=Jan, D=day without leading zero (required by Cognito)
+        return input_datetime.format("ddd MMM D HH:mm:ss [UTC] YYYY")
 
     def process_challenge(self, challenge_parameters, request_parameters):
         internal_username = challenge_parameters.get(
@@ -306,7 +292,7 @@ class AWSSRP:
         salt_hex = challenge_parameters["SALT"]
         srp_b_hex = challenge_parameters["SRP_B"]
         secret_block_b64 = challenge_parameters["SECRET_BLOCK"]
-        timestamp = self.get_cognito_formatted_timestamp(datetime.datetime.utcnow())
+        timestamp = self.get_cognito_formatted_timestamp(pendulum.now("UTC"))
         hkdf = self.get_password_authentication_key(
             user_id_for_srp, self.password, hex_to_long(srp_b_hex), salt_hex
         )
@@ -343,12 +329,8 @@ class AWSSRP:
         salt_hex = challenge_parameters["SALT"]
         srp_b_hex = challenge_parameters["SRP_B"]
         secret_block_b64 = challenge_parameters["SECRET_BLOCK"]
-        # re strips leading zero from a day number (required by AWS Cognito)
-        timestamp = re.sub(
-            r" 0(\d) ",
-            r" \1 ",
-            datetime.datetime.utcnow().strftime("%a %b %d %H:%M:%S UTC %Y"),
-        )
+        # pendulum's D token produces no leading zero, so no re.sub stripping needed
+        timestamp = self.get_cognito_formatted_timestamp(pendulum.now("UTC"))
         hkdf = self.get_device_authentication_key(
             self.device_group_key,
             self.device_key,
@@ -458,7 +440,7 @@ class AWSSRP:
                 ChallengeResponses=challenge_response,
             )
 
-            if tokens["ChallengeName"] == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
+            if tokens.get("ChallengeName") == self.NEW_PASSWORD_REQUIRED_CHALLENGE:
                 challenge_parameters = response["ChallengeParameters"]
                 challenge_response.update(
                     {
@@ -527,6 +509,8 @@ class AWSSRP:
             status = "remembered"
         elif is_remembered is False:
             status = "not_remembered"
+        else:
+            raise ValueError("is_remembered must be True or False")
         data = {
             "AccessToken": self.access_token,
             "DeviceKey": self.device_key,
@@ -535,7 +519,7 @@ class AWSSRP:
         response = requests.post(
             self.cognito_idp_url, headers=headers, data=json.dumps(data), timeout=30
         )
-        return f"{response} : {response.json}"
+        return f"{response} : {response.json()}"
 
     def forget_device(self, access_token, device_key):
         self.cognito_idp_url = (
@@ -552,4 +536,4 @@ class AWSSRP:
         response = requests.post(
             self.cognito_idp_url, headers=headers, data=json.dumps(data), timeout=30
         )
-        return f"{response} : {response.json}"
+        return f"{response} : {response.json()}"

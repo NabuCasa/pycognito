@@ -2,83 +2,56 @@ name: CI
 
 on:
   push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
+
+permissions:
+  contents: read
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     name: Lint
     steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v5.6.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.9"
-          cache: 'pip'
+          python-version: "3.14"
+          cache: "pip"
+      - run: make init-ci
+      - run: make lint
+      - run: make format
 
-      - name: Install requirements
-        run: python3 -m pip install .[lint]
-
-      - name: Run linters
-        run: ./scripts/lint
-
-  test:
+  tests:
     runs-on: ubuntu-latest
-    name: Test with Python ${{ matrix.python-version }}
+    name: Test (Python ${{ matrix.python-version }})
     needs: lint
     strategy:
       fail-fast: false
       matrix:
-        python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5.6.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements.txt
-            requirements_test.txt
-
-      - name: Install requirements
-        run: python3 -m pip install .[test]
-
-      - name: Run tests
-        run: ./scripts/test
+          cache: "pip"
+      - run: make init-ci
+      - run: make test
 
   build:
     runs-on: ubuntu-latest
+    name: Build
+    needs: lint
     steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.9"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install setuptools build
-
-      - name: Build
-        run: |
-          python -m build
-
-      - name: Upload dists
-        uses: actions/upload-artifact@v5.0.0
+          fetch-depth: 0  # setuptools-scm needs tags to compute the version
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: "dist"
           path: "dist/"
