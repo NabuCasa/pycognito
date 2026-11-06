@@ -104,6 +104,7 @@ Makes working with AWS Cognito easier for Python developers.
 - 3.11
 - 3.12
 - 3.13
+- 3.14
 
 ## Install
 
@@ -2010,7 +2011,7 @@ Tests use `pytest` to run against the current Python version:
 ```bash
 make test        # current Python only
 ```
-To test against all compatible Python versions (3.9–3.13) in isolated environments install `act`
+To test against all compatible Python versions (3.9–3.14) in isolated environments install `act`
 and simulate a github push request
 ```bash
 act push

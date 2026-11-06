@@ -1,4 +1,5 @@
-ruff
+# keep in step with the ruff-pre-commit rev in .pre-commit-config.yaml
+ruff==0.17.4
 # minimum version of coverage for python 3.9+
 coverage>=7.10
 pytest>=8.0

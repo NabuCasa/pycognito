@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet",
     "Topic :: Software Development :: Libraries",
 ]
@@ -51,12 +52,14 @@ line-length = 88
 exclude = ["tests_*", "*/_version.py"]
 
 [tool.ruff.lint]
-extend-select = ["W", "I", "PL", "ARG", "BLE"]
+# Explicit rule set (ruff's old defaults E4/E7/E9/F plus our additions) so a
+# ruff upgrade that changes the default selection doesn't change linting.
+select = ["E4", "E7", "E9", "F", "W", "I", "PL", "ARG", "BLE"]
 ignore = [
     "ARG001", "ARG002",
     "PLW0603",
     "PLR0904", "PLR0911", "PLR0912", "PLR0913",
-    "PLR0914", "PLR0915", "PLR2004",
+    "PLR0914", "PLR0915", "PLR0917", "PLR2004",
 ]
 
 [tool.ruff.lint.isort]
