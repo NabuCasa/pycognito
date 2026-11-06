@@ -8,7 +8,7 @@ dynamic = ["version"]          # version comes from git tags via setuptools-scm
 description = "Python class to integrate Boto3's Cognito client so it is easy to login users. With SRP support."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Pascal Vizeli", email = "pvizeli@syshack.ch" },
 ]
@@ -18,7 +18,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

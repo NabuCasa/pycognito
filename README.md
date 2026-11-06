@@ -99,7 +99,8 @@ Makes working with AWS Cognito easier for Python developers.
 
 ## Python Versions Supported
 
-- 3.9
+These match the Python runtimes AWS Lambda currently supports.
+
 - 3.10
 - 3.11
 - 3.12
@@ -1978,7 +1979,7 @@ Contributions are welcome — bug fixes, new features, and documentation improve
 
 ### Development Setup
 
-You'll need Python 3.9+ and [Make](https://www.gnu.org/software/make/).
+You'll need Python 3.10+ and [Make](https://www.gnu.org/software/make/).
 
 ```bash
 git clone https://github.com/pvizeli/pycognito.git
@@ -2011,7 +2012,7 @@ Tests use `pytest` to run against the current Python version:
 ```bash
 make test        # current Python only
 ```
-To test against all compatible Python versions (3.9–3.14) in isolated environments install `act`
+To test against all compatible Python versions (3.10–3.14) in isolated environments install `act`
 and simulate a github push request
 ```bash
 act push
